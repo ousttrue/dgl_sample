@@ -1,0 +1,11 @@
+name "dimgui_sample"
+description "A minimal D application."
+authors "ousttrue"
+copyright "Copyright c 2016, ousttrue"
+license "MIT"
+
+dependency "derelict-glfw3" version="~>3.1.0"
+dependency "derelict-gl3" version="~>1.0.12"
+dependency "derelict-imgui" version="~master" path="submodules/DerelictImgui"
+dependency "gfm:math" version="~>6.1.2"
+

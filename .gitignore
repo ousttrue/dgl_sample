@@ -1,0 +1,11 @@
+.dub
+docs.json
+__dummy.html
+*.o
+*.obj
+*.dll
+*.exe
+*.sln
+*.suo
+
+/submodules/_build_premake
