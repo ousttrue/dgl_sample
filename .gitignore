@@ -7,5 +7,5 @@ __dummy.html
 *.exe
 *.sln
 *.suo
-
 /submodules/_build_premake
+imgui.ini
