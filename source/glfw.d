@@ -1,4 +1,3 @@
-import derelict.opengl3.gl3;
 import derelict.glfw3.glfw3;
 
 
@@ -21,7 +20,6 @@ class GLFW
 
 	static this()
 	{
-		DerelictGL3.load();
 		DerelictGLFW3.load();
 	}
 
@@ -48,13 +46,33 @@ class GLFW
 		}
 		glfwMakeContextCurrent(m_window);
 		glfwInit();
-		DerelictGL3.reload();
 		return true;
 	}
 
-	void getWindowSize(ref int w, ref int h)
+	int[2] getWindowSize()
 	{
-		glfwGetWindowSize(m_window, &w, &h);
+		int[2] size;
+		glfwGetWindowSize(m_window, &size[0], &size[1]);
+		return size;
+	}
+
+	int[2] getSize()
+	{
+		int[2] size;
+		glfwGetFramebufferSize(m_window, &size[0], &size[1]);
+		return size;
+	}
+
+	public bool hasFocus()
+	{
+		return glfwGetWindowAttrib(m_window, GLFW_FOCUSED)!=0;
+	}
+
+	double[2] getCursorPos()
+	{
+		double[2] pos;
+		glfwGetCursorPos(m_window, &pos[0], &pos[1]);
+		return pos;
 	}
 
 	bool loop()
@@ -66,15 +84,20 @@ class GLFW
 		return true;
 	}
 
-	void clearRenderTarget(float[] clear_color)
+	double time()
 	{
-		int w, h;
-		glfwGetWindowSize(m_window, &w, &h);
-		glViewport(0, 0, w, h);
-		if(clear_color.length>=3){
-			glClearColor(clear_color[0], clear_color[1], clear_color[2], 0);
-		}
-		glClear(GL_COLOR_BUFFER_BIT);
+		return glfwGetTime();
+	}
+
+	bool mouseDown(int i)
+	{
+		return glfwGetMouseButton(m_window, i) != 0;
+	}
+
+	void setMouseCursor(bool mouseCursor)
+	{
+		glfwSetInputMode(m_window, GLFW_CURSOR
+						 , mouseCursor ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL);
 	}
 
 	void flush()
@@ -82,6 +105,3 @@ class GLFW
 		glfwSwapBuffers(m_window);
 	}
 }
-
-
-

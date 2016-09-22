@@ -2,7 +2,8 @@ module main;
 
 import glfw;
 import derelict.imgui.imgui;
-import imgui_glfw: igGlfwGL3;
+import imgui;
+import renderer;
 
 
 void gui(
@@ -57,30 +58,45 @@ void gui(
 
 void main()
 {
-	// window & opengl
+	// window
 	auto scope glfw=new GLFW();
 	if(!glfw.createWindow()){
 		return;
 	}
 
+    // opengl
+    auto scope renderer=new Renderer();
+
 	// gui
-	auto scope imgui=new igGlfwGL3();
-	if(!imgui.initialize(glfw.window)){
+	auto scope imgui=new ImGui();
+	if(!imgui.initialize(renderer)){
 		return;
 	}
 	bool show_test_window = true;
 	bool show_another_window = false;
     float[3] clear_color = [0.3f, 0.4f, 0.8f];
 
-
 	// main loop
 	while (glfw.loop())
-	{
+	{	
+		double current_time =  glfw.time();
+		auto size=glfw.getSize();
+		auto windowSize=glfw.getWindowSize();
+		auto pos=glfw.getCursorPos();
+
 		// Rendering
-		glfw.clearRenderTarget(clear_color);
+		renderer.clearRenderTarget(clear_color);
+		renderer.setViewport(size[0], size[1]);
 
 		// gui
-		imgui.newFrame();
+		auto mouseCursor=imgui.newFrame(current_time
+			, size[0], size[1], windowSize[0], windowSize[1]
+			, glfw.hasFocus()
+			, pos[0], pos[1]
+			, glfw.mouseDown(0), glfw.mouseDown(1), glfw.mouseDown(2));
+		// Hide/show hardware mouse cursor
+		glfw.setMouseCursor(mouseCursor);
+
 		gui(show_test_window, show_another_window, clear_color);
 		igRender();
 
