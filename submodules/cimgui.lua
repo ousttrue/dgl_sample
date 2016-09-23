@@ -15,17 +15,17 @@ flags{
     --"StaticRuntime",
 }
 files {
-    "cimgui/cimgui/cimgui.h",
-    "cimgui/cimgui/cimgui.cpp",
-    "cimgui/cimgui/drawList.cpp",
-    "cimgui/cimgui/fontAtlas.cpp",
-    "cimgui/imgui/imgui.cpp",
-    "cimgui/imgui/imgui_demo.cpp",
-    "cimgui/imgui/imgui_draw.cpp",
-    "cimgui/imgui/imgui_internal.h",
+    "DerelictImgui/cimgui/cimgui/cimgui.h",
+    "DerelictImgui/cimgui/cimgui/cimgui.cpp",
+    "DerelictImgui/cimgui/cimgui/drawList.cpp",
+    "DerelictImgui/cimgui/cimgui/fontAtlas.cpp",
+    "DerelictImgui/cimgui/imgui/imgui.cpp",
+    "DerelictImgui/cimgui/imgui/imgui_demo.cpp",
+    "DerelictImgui/cimgui/imgui/imgui_draw.cpp",
+    "DerelictImgui/cimgui/imgui/imgui_internal.h",
 }
 includedirs {
-    "cimgui/cimgui",
+    "DerelictImgui/cimgui/cimgui",
 }
 defines {
     "WIN32",

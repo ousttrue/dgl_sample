@@ -1,5 +1,5 @@
 import derelict.opengl3.gl3;
-import irenderer;
+public import irenderer;
 
 
 class Renderer: IRenderer
