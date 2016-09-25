@@ -1,4 +1,4 @@
-local build_dir="_build_premake"
+local build_dir="../_build_premake"
 
 -- premake5.lua
 location(build_dir)

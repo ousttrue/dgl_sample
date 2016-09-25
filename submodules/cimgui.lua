@@ -37,11 +37,3 @@ buildoptions { }
 libdirs { }
 links { }
 
-postbuildcommands{
-    "copy $(TargetDir)$(TargetName).dll ..\\..",
-}
-filter { "configurations:Debug" }
-    postbuildcommands{
-        "copy $(TargetDir)$(TargetName).pdb ..\\..",
-    }
-

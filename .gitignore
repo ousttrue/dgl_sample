@@ -9,3 +9,5 @@ __dummy.html
 *.suo
 /submodules/_build_premake
 imgui.ini
+/_build_premake/
+premake5.lua
