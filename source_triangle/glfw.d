@@ -10,7 +10,7 @@ extern(C) nothrow void error_callback(int error, const(char)* description)
 }
 
 
-class GLFW
+struct GLFW
 {
 	GLFWwindow *m_window;
 	@property public GLFWwindow* window()

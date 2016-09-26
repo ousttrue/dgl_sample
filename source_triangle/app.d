@@ -2,6 +2,10 @@ import std.stdio;
 import std.conv;
 import std.exception;
 import std.experimental.logger;
+import std.string;
+import std.array;
+import std.typecons;
+import std.algorithm;
 import glfw;
 import derelict.opengl3.gl3;
 
@@ -119,6 +123,49 @@ class ShaderProgram
 	immutable GLuint m_program;
 	Shader[] m_shaders;
 
+	struct Attrib
+	{
+		string name;
+		int location;
+		int size;
+		GLenum type;
+
+		@property int elementCount()
+		{
+			switch(type)
+			{
+				case GL_FLOAT_VEC3:
+					return 3;
+
+				default:
+					throw new Exception("unknown type");
+			}
+		}
+
+		@property GLenum elementType()
+		{
+			switch(type)
+			{
+				case GL_FLOAT_VEC3:
+					return GL_FLOAT;
+
+				default:
+					throw new Exception("unknown type");
+			}
+		}
+	}
+	Attrib[] Attribs;
+	Attrib getAttrib(string name)
+	{
+		foreach(ref a; Attribs)
+		{
+			if(a.name==name){
+				return a;
+			}
+		}
+		throw new Exception("attrib not found");
+	}
+
 	this()
 	{
 		m_program=glCreateProgram();
@@ -138,9 +185,6 @@ class ShaderProgram
 
 	bool link()
 	{
-		glBindAttribLocation(m_program, 0, "VertexPosition");
-		glBindAttribLocation(m_program, 1, "VertexColor");
-
 		glLinkProgram(m_program);
 
 		GLint status;
@@ -157,6 +201,34 @@ class ShaderProgram
 			}
 			return false;
 		}
+
+		// retreive attributes
+		GLint maxLength;
+		GLint nAttribs;
+
+		glGetProgramiv(m_program
+					   , GL_ACTIVE_ATTRIBUTES, &nAttribs);
+		glGetProgramiv(m_program
+					   , GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxLength);
+		auto buf=new char[maxLength];
+		for(int i=0; i<nAttribs; i++)
+		{
+			GLint written;
+			GLint size;
+			GLenum type;
+			glGetActiveAttrib(m_program, i, maxLength, &written
+							   , &size, &type, buf.ptr);
+			auto name=buf[0..written].to!string;
+			auto location=glGetAttribLocation(m_program, name.toStringz);
+			Attrib attrib={
+				name: name,
+				location: location,
+				size: size,
+				type: type
+			};
+			Attribs~=attrib;
+		}
+
 		return true;
 	}
 
@@ -233,12 +305,12 @@ class VertexArray
 		glBindVertexArray(0);
 	}
 
-	void attribPointer(int index, VertexBuffer buffer)
+	void attribPointer(ShaderProgram.Attrib attrib, VertexBuffer buffer)
 	{
 		bind();
 		buffer.bind();
-		glVertexAttribPointer(index
-			, buffer.elementCount, buffer.elementType
+		glVertexAttribPointer(attrib.location
+			, attrib.elementCount, attrib.elementType
 			, GL_FALSE, 0, null);
 		buffer.unbind();
 		unbind();
@@ -267,7 +339,7 @@ class VertexArray
 void main()
 {
     // window
-    auto scope glfw=new GLFW();
+    auto glfw=refCounted(new GLFW());
     if(!glfw.createWindow(4, 1)){
         return;
     }
@@ -305,8 +377,8 @@ void main()
 	]);
 
 	auto scope vertexArray=new VertexArray();
-	vertexArray.attribPointer(0, positions);
-	vertexArray.attribPointer(1, colors);
+	vertexArray.attribPointer(program.getAttrib("VertexPosition"), positions);
+	vertexArray.attribPointer(program.getAttrib("VertexColor"), colors);
 
 	float[] clearColor=[
 		0.5f, 0.4f, 0.3f, 0,
