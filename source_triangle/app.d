@@ -339,12 +339,12 @@ class VertexArray
 void main()
 {
     // window
-    auto glfw=refCounted(new GLFW());
+    auto glfw=new GLFW();
     if(!glfw.createWindow(4, 1)){
         return;
     }
 
-	auto scope gl=new OpenGL();
+	auto gl=new OpenGL();
 
 	auto vertShader=new Shader(GL_VERTEX_SHADER);
 	if(!vertShader.compile(vert))
@@ -356,7 +356,7 @@ void main()
 	{
 		return;
 	}
-	auto scope program=new ShaderProgram();
+	auto program=new ShaderProgram();
 	program.attach(vertShader);
 	program.attach(fragShader);
 	if(!program.link()){
@@ -376,7 +376,7 @@ void main()
 		0.0f, 0.0f, 1.0f,
 	]);
 
-	auto scope vertexArray=new VertexArray();
+	auto vertexArray=new VertexArray();
 	vertexArray.attribPointer(program.getAttrib("VertexPosition"), positions);
 	vertexArray.attribPointer(program.getAttrib("VertexColor"), colors);
 
