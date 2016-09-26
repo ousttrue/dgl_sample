@@ -6,22 +6,27 @@ import std.string;
 import std.array;
 import std.typecons;
 import std.algorithm;
+import std.datetime;
 import glfw;
 import derelict.opengl3.gl3;
+import gfm.math;
+import core.thread;
 
 
 auto vert="
 #version 400
 
-in vec3 VertexPosition;
-in vec3 VertexColor;
+layout(location=0) in vec3 VertexPosition;
+layout(location=1) in vec3 VertexColor;
 
 out vec3 Color;
+
+uniform mat4 RotationMatrix;
 
 void main()
 {
 	Color=VertexColor;
-	gl_Position = vec4(VertexPosition, 1.0);
+	gl_Position = RotationMatrix * vec4(VertexPosition, 1.0);
 }
 ";
 
@@ -236,6 +241,17 @@ class ShaderProgram
 	{
 		glUseProgram(m_program);
 	}
+
+	GLuint getUniformLocation(string name)
+	{
+		return glGetUniformLocation(m_program, name.toStringz);
+	}
+
+	void setUniform(string name, const ref mat4!float value)
+	{
+		glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, 
+						   value.ptr);
+	}
 }
 
 
@@ -385,21 +401,36 @@ void main()
 	];
 
 	// main loop
+	auto last_time=MonoTime.currTime;
+
+	float angle=0;
+	auto rotSpeed=radians!float(180);
 	while (glfw.loop())
 	{	
-		auto size=glfw.getSize();
-		glViewport(0, 0, size[0], size[1]);
-
-		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		program.use();
-		vertexArray.draw(3, 2);
-		/*
-		double current_time =  glfw.time();
+		// update
+		auto current_time =  MonoTime.currTime;
 		auto size=glfw.getSize();
 		auto windowSize=glfw.getWindowSize();
 		auto pos=glfw.getCursorPos();
+		glViewport(0, 0, size[0], size[1]);
+
+		auto delta=(current_time-last_time).total!"msecs" * 0.001;
+		last_time=current_time;
+
+		angle+=delta * rotSpeed;
+
+		auto m=mat4!float.rotateZ(angle);
+		writeln(m);
+		program.setUniform("RotationMatrix", m);
+
+		// clear
+		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		// draw
+		program.use();
+		vertexArray.draw(3, 2);
+		/*
 
 		// rendering 3D scene
 		renderer.clearRenderTarget(context.clear_color);
@@ -418,5 +449,7 @@ void main()
 
 		// present
 		glfw.flush();
+
+		Thread.sleep( dur!("msecs")( 16 ) );
 	}
 }

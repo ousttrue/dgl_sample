@@ -84,11 +84,6 @@ class GLFW
 		return true;
 	}
 
-	double time()
-	{
-		return glfwGetTime();
-	}
-
 	bool mouseDown(int i)
 	{
 		return glfwGetMouseButton(m_window, i) != 0;

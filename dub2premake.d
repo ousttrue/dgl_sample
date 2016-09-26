@@ -25,7 +25,7 @@ end
 filter 'configurations:Debug'
 do
     defines { 'DEBUG', '_DEBUG' }
-    flags { 'Symbols' }
+    symbols 'On'
 end
 
 filter 'configurations:Release'
@@ -160,7 +160,9 @@ string getKind(TargetType type)
 
 auto fixPath(JSONValue v)
 {
-    return to!string(v.str.asRelativePath(getcwd())).replace("\\", "/");
+    return to!string(v.str.asRelativePath(getcwd()))
+        .replace("\\", "/")
+        ;
 }
 auto fileList(JSONValue v)
 {
@@ -170,6 +172,15 @@ auto fileList(JSONValue v)
         .join("\n")
         ;
 }
+auto libList(JSONValue v)
+{
+    return v.array
+        .uniq
+        .map!(a => "'"~ fixPath(a).baseName.replace(":", "_") ~"',")
+        .join("\n")
+        ;
+}
+
 
 void main()
 {
@@ -196,6 +207,7 @@ void main()
     foreach(target; processPackage())
     {
         auto name=target.object["rootPackage"].str;
+        name=name.split(":")[$-1];
         if(!workspace_name){
             workspace_name=name;
         }
@@ -210,6 +222,7 @@ void main()
         {
             auto name=target.object["rootPackage"].str;
             name=name.split(":")[$-1];
+            //name=name.replace(":", "_");
             package_map[name]=target;
         }
     }
@@ -233,7 +246,7 @@ void main()
                     "project_name": k.replace(":", "_"),
                     "project_kind": getKind(targetType),
                     "project_files": fileList(b.object["sourceFiles"]),
-                    "project_links": fileList(v.object["linkDependencies"]),
+                    "project_links": libList(v.object["linkDependencies"]),
                     "project_includedirs": fileList(b.object["importPaths"]),
                     "project_versions": fileList(b.object["versions"]),
                     ]));
