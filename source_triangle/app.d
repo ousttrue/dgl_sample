@@ -198,6 +198,12 @@ class VertexBuffer
 		bind();
 		glBufferData(GL_ARRAY_BUFFER
 			, float.sizeof * data.length, data.ptr, GL_STATIC_DRAW);
+		unbind();
+	}
+
+	void unbind()
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 }
 
@@ -222,17 +228,23 @@ class VertexArray
 		glBindVertexArray(m_vao);
 	}
 
+	void unbind()
+	{
+		glBindVertexArray(0);
+	}
+
 	void attribPointer(int index, VertexBuffer buffer)
 	{
 		bind();
 		buffer.bind();
-		glEnableVertexAttribArray(index);
 		glVertexAttribPointer(index
 			, buffer.elementCount, buffer.elementType
 			, GL_FALSE, 0, null);
+		buffer.unbind();
+		unbind();
 	}
 
-	void draw(int count)
+	void draw(int count, int elementCount)
 	{
 		glEnable(GL_BLEND);
 		glBlendEquation(GL_FUNC_ADD);
@@ -242,7 +254,12 @@ class VertexArray
 		glDisable(GL_SCISSOR_TEST);
 
 		bind();
+		for(int i=0; i<elementCount; ++i)glEnableVertexAttribArray(i);
+
 		glDrawArrays(GL_TRIANGLES, 0, 4);
+
+		for(int i=0; i<elementCount; ++i)glDisableVertexAttribArray(i);
+		unbind();
 	}
 }
 
@@ -251,7 +268,7 @@ void main()
 {
     // window
     auto scope glfw=new GLFW();
-    if(!glfw.createWindow(3, 3)){
+    if(!glfw.createWindow(4, 1)){
         return;
     }
 
@@ -305,7 +322,7 @@ void main()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		program.use();
-		vertexArray.draw(3);
+		vertexArray.draw(3, 2);
 		/*
 		double current_time =  glfw.time();
 		auto size=glfw.getSize();
