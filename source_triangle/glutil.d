@@ -351,11 +351,13 @@ class VertexArray
 {
     GLuint m_vao;
     VertexBuffer[] m_buffers;
+	int m_vertexCount;
 
-    this()
+    this(int vertexCount)
     {
         glGenVertexArrays(1, &m_vao);
         enforce(m_vao!=0, "fail to glGenVertexArrays");
+		m_vertexCount=vertexCount;
     }
 
     ~this()
@@ -398,7 +400,7 @@ class VertexArray
         bind();
         for(int i=0; i<m_buffers.length; ++i)glEnableVertexAttribArray(i);
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);
 
         for(int i=0; i<m_buffers.length; ++i)glDisableVertexAttribArray(i);
         unbind();
@@ -463,7 +465,7 @@ class RenderPass
 
     VertexArray mesh2vertexArray(Mesh mesh)
     {
-        auto vertexArray=new VertexArray();
+        auto vertexArray=new VertexArray(mesh.vertexCount);
 
         auto positions=new VertexBuffer();
         positions.store(mesh.positions.ptr, mesh.positions.byteslen);
@@ -480,4 +482,3 @@ class RenderPass
         return vertexArray;	
     }
 }
-

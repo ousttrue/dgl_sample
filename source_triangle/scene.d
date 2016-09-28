@@ -3,6 +3,7 @@ import gfm.math;
 
 class Mesh
 {
+	int vertexCount;
     vec3!float[] positions;
     vec3!float[] colors;
     vec2!float[] texcoords;
@@ -10,6 +11,7 @@ class Mesh
     static Mesh createTriangle(float size)
     {
         auto mesh=new Mesh();
+		mesh.vertexCount=3;
         mesh.positions=[
             vec3!float(-size, -size, 0.0f),
             vec3!float( size, -size, 0.0f),
@@ -27,6 +29,40 @@ class Mesh
         ];
         return mesh;
     }
+
+	static Mesh createQuadrangle(float size)
+	{
+        auto mesh=new Mesh();
+		mesh.vertexCount=6;
+        mesh.positions=[
+            vec3!float(-size, -size, 0.0f),
+            vec3!float( size, -size, 0.0f),
+            vec3!float( size,  size, 0.0f),
+
+            vec3!float( size,  size, 0.0f),
+			vec3!float(-size,  size, 0.0f),
+            vec3!float(-size, -size, 0.0f),
+        ];
+        mesh.colors=[
+            vec3!float(1.0f, 1.0f, 1.0f),
+            vec3!float(1.0f, 1.0f, 1.0f),
+            vec3!float(1.0f, 1.0f, 1.0f),
+
+            vec3!float(1.0f, 1.0f, 1.0f),
+            vec3!float(1.0f, 1.0f, 1.0f),
+            vec3!float(1.0f, 1.0f, 1.0f),
+        ];
+        mesh.texcoords=[
+            vec2!float(0.0f, 0.0f),
+            vec2!float(1.0f, 0.0f),
+            vec2!float(1.0f, 1.0f),
+
+            vec2!float(1.0f, 1.0f),
+            vec2!float(0.0f, 1.0f),
+            vec2!float(0.0f, 0.0f),
+        ];
+        return mesh;
+	}
 }
 
 

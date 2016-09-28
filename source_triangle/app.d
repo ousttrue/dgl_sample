@@ -24,8 +24,9 @@ void main()
 	}
 	renderPass.setClearColor(0.5f, 0.4f, 0.3f, 0);
 
-	auto triangle=scene.Mesh.createTriangle(0.8f);
-	auto vertexArray=renderPass.mesh2vertexArray(triangle);
+	//auto mesh=scene.Mesh.createTriangle(0.8f);
+	auto mesh=scene.Mesh.createQuadrangle(1.0f);
+	auto vertexArray=renderPass.mesh2vertexArray(mesh);
 
 	// main loop
 	auto last_time=MonoTime.currTime;
