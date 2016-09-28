@@ -11,38 +11,7 @@ import glfw;
 import derelict.opengl3.gl3;
 import gfm.math;
 import core.thread;
-
-
-auto vert="
-#version 400
-
-layout(location=0) in vec3 VertexPosition;
-layout(location=1) in vec3 VertexColor;
-
-out vec3 Color;
-
-uniform mat4 RotationMatrix;
-
-void main()
-{
-	Color=VertexColor;
-	gl_Position = RotationMatrix * vec4(VertexPosition, 1.0);
-}
-";
-
-
-auto frag="
-#version 400
-
-in vec3 Color;
-
-out vec4 FragColor;
-
-void main()
-{
-	FragColor = vec4(Color, 1.0);
-}
-";
+static import simple_shader;
 
 
 class OpenGL
@@ -128,7 +97,7 @@ class ShaderProgram
 	immutable GLuint m_program;
 	Shader[] m_shaders;
 
-	struct Attrib
+	struct Variable
 	{
 		string name;
 		int location;
@@ -159,7 +128,8 @@ class ShaderProgram
 			}
 		}
 	}
-	Attrib[string] Attribs;
+	Variable[string] Attribs;
+	Variable[string] Uniforms;
 
 	this()
 	{
@@ -198,30 +168,59 @@ class ShaderProgram
 		}
 
 		// retreive attributes
-		GLint maxLength;
-		GLint nAttribs;
-
-		glGetProgramiv(m_program
-					   , GL_ACTIVE_ATTRIBUTES, &nAttribs);
-		glGetProgramiv(m_program
-					   , GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxLength);
-		auto buf=new char[maxLength];
-		for(int i=0; i<nAttribs; i++)
 		{
-			GLint written;
-			GLint size;
-			GLenum type;
-			glGetActiveAttrib(m_program, i, maxLength, &written
-							   , &size, &type, buf.ptr);
-			auto name=buf[0..written].to!string;
-			auto location=glGetAttribLocation(m_program, name.toStringz);
-			Attrib attrib={
-				name: name,
-				location: location,
-				size: size,
-				type: type
-			};
-			Attribs[name]=attrib;
+			GLint maxLength;
+			GLint nAttribs;
+
+			glGetProgramiv(m_program
+						   , GL_ACTIVE_ATTRIBUTES, &nAttribs);
+			glGetProgramiv(m_program
+						   , GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxLength);
+			auto buf=new char[maxLength];
+			for(int i=0; i<nAttribs; i++)
+			{
+				GLint written;
+				GLint size;
+				GLenum type;
+				glGetActiveAttrib(m_program, i, maxLength, &written
+								  , &size, &type, buf.ptr);
+				auto name=buf[0..written].to!string;
+				auto location=glGetAttribLocation(m_program, name.toStringz);
+				Variable attrib={
+					name: name,
+					location: location,
+					size: size,
+					type: type
+				};
+				Attribs[name]=attrib;
+			}
+		}
+
+		{
+			GLint nUniforms;
+			GLint maxLength;
+			glGetProgramiv(m_program
+						   , GL_ACTIVE_UNIFORMS, &nUniforms);
+			glGetProgramiv(m_program
+						   , GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxLength);
+			auto buf=new char[maxLength];
+			for(int i=0; i<nUniforms; ++i)
+			{
+				GLint written;
+				GLint size;
+				GLenum type;
+				glGetActiveUniform(m_program, i, maxLength, &written
+								   , &size, &type, buf.ptr);
+				auto name=buf[0..written].to!string;
+				auto location = glGetUniformLocation(m_program, name.toStringz);
+				Variable uniform={
+					name: name,
+					location: location,
+					size: size,
+					type: type
+				};
+				Uniforms[name]=uniform;
+			}
 		}
 
 		return true;
@@ -311,7 +310,7 @@ class VertexArray
 		glBindVertexArray(0);
 	}
 
-	void attribPointer(ShaderProgram.Attrib attrib, VertexBuffer buffer)
+	void attribPointer(ShaderProgram.Variable attrib, VertexBuffer buffer)
 	{
 		bind();
 		buffer.bind();
@@ -353,12 +352,12 @@ void main()
 	auto gl=new OpenGL();
 
 	auto vertShader=new Shader(GL_VERTEX_SHADER);
-	if(!vertShader.compile(vert))
+	if(!vertShader.compile(simple_shader.vert))
 	{
 		return;
 	}
 	auto fragShader=new Shader(GL_FRAGMENT_SHADER);
-	if(!fragShader.compile(frag))
+	if(!fragShader.compile(simple_shader.frag))
 	{
 		return;
 	}
