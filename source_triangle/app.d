@@ -16,6 +16,11 @@ static import simple_shader;
 static import circle_shader;
 
 
+int byteslen(T)(T[] array)
+{
+	return T.sizeof * array.length;
+}
+
 class OpenGL
 {
 	string m_renderer;
@@ -94,44 +99,50 @@ class Shader
 }
 
 
+struct ShaderVariable
+{
+	string name;
+	int location;
+	int size;
+	GLenum type;
+
+	@property int elementCount()
+	{
+		switch(type)
+		{
+			case GL_FLOAT_VEC2:
+				return 2;
+
+			case GL_FLOAT_VEC3:
+				return 3;
+
+			default:
+				throw new Exception("unknown type");
+		}
+	}
+
+	@property GLenum elementType()
+	{
+		switch(type)
+		{
+			case GL_FLOAT_VEC3:
+			case GL_FLOAT_VEC2:
+				return GL_FLOAT;
+
+			default:
+				throw new Exception("unknown type");
+		}
+	}
+}
+
+
 class ShaderProgram
 {
 	immutable GLuint m_program;
 	Shader[] m_shaders;
 
-	struct Variable
-	{
-		string name;
-		int location;
-		int size;
-		GLenum type;
-
-		@property int elementCount()
-		{
-			switch(type)
-			{
-				case GL_FLOAT_VEC3:
-					return 3;
-
-				default:
-					throw new Exception("unknown type");
-			}
-		}
-
-		@property GLenum elementType()
-		{
-			switch(type)
-			{
-				case GL_FLOAT_VEC3:
-					return GL_FLOAT;
-
-				default:
-					throw new Exception("unknown type");
-			}
-		}
-	}
-	Variable[string] Attribs;
-	Variable[string] Uniforms;
+	ShaderVariable[string] Attribs;
+	ShaderVariable[string] Uniforms;
 
 	struct BlockVar
 	{
@@ -198,7 +209,7 @@ class ShaderProgram
 								  , &size, &type, buf.ptr);
 				auto name=buf[0..written].to!string;
 				auto location=glGetAttribLocation(m_program, name.toStringz);
-				Variable attrib={
+				ShaderVariable attrib={
 					name: name,
 					location: location,
 					size: size,
@@ -225,7 +236,7 @@ class ShaderProgram
 								   , &size, &type, buf.ptr);
 				auto name=buf[0..written].to!string;
 				auto location = glGetUniformLocation(m_program, name.toStringz);
-				Variable uniform={
+				ShaderVariable uniform={
 					name: name,
 					location: location,
 					size: size,
@@ -233,7 +244,6 @@ class ShaderProgram
 				};
 				Uniforms[name]=uniform;
 			}
-
 			/*
 			{
 				auto name="BlobSettings";
@@ -279,6 +289,9 @@ class ShaderProgram
 			}
 			*/
 		}
+
+		auto m=mat4!float.identity;
+		setUniform("RotationMatrix", m);
 
 		return true;
 	}
@@ -328,11 +341,11 @@ class VertexBuffer
 		glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 	}
 
-	void store(float[] data)
+	void store(void* data, int len)
 	{
 		bind();
 		glBufferData(GL_ARRAY_BUFFER
-			, float.sizeof * data.length, data.ptr, GL_STATIC_DRAW);
+			, len, data, GL_STATIC_DRAW);
 		unbind();
 	}
 
@@ -346,6 +359,7 @@ class VertexBuffer
 class VertexArray
 {
 	GLuint m_vao;
+	VertexBuffer[] m_buffers;
 
 	this()
 	{
@@ -368,7 +382,7 @@ class VertexArray
 		glBindVertexArray(0);
 	}
 
-	void attribPointer(ShaderProgram.Variable attrib, VertexBuffer buffer)
+	void attribPointer(ShaderVariable attrib, VertexBuffer buffer)
 	{
 		bind();
 		buffer.bind();
@@ -377,9 +391,11 @@ class VertexArray
 			, GL_FALSE, 0, null);
 		buffer.unbind();
 		unbind();
+
+		m_buffers~=buffer;
 	}
 
-	void draw(int triangles, int elementCount)
+	void draw()
 	{
 		glEnable(GL_BLEND);
 		glBlendEquation(GL_FUNC_ADD);
@@ -389,12 +405,132 @@ class VertexArray
 		glDisable(GL_SCISSOR_TEST);
 
 		bind();
-		for(int i=0; i<elementCount; ++i)glEnableVertexAttribArray(i);
+		for(int i=0; i<m_buffers.length; ++i)glEnableVertexAttribArray(i);
 
-		glDrawArrays(GL_TRIANGLES, 0, triangles);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 
-		for(int i=0; i<elementCount; ++i)glDisableVertexAttribArray(i);
+		for(int i=0; i<m_buffers.length; ++i)glDisableVertexAttribArray(i);
 		unbind();
+	}
+}
+
+
+class RenderPass
+{
+	ShaderProgram m_program;
+	vec4!float m_clearColor;
+	vec2!int m_frameSize;
+
+	bool createShader(string vert, string frag)
+	{
+		auto vertShader=new Shader(GL_VERTEX_SHADER);
+		if(!vertShader.compile(simple_shader.vert))
+		{
+			return false;
+		}
+		auto fragShader=new Shader(GL_FRAGMENT_SHADER);
+		if(!fragShader.compile(simple_shader.frag))
+		{
+			return false;
+		}
+
+		m_program=new ShaderProgram();
+		m_program.attach(vertShader);
+		m_program.attach(fragShader);
+		if(!m_program.link()){
+			return false;
+		}
+
+		return true;
+	}
+
+	void setClearColor(float r, float g, float b, float a)
+	{
+		m_clearColor.x=r;
+		m_clearColor.y=g;
+		m_clearColor.z=b;
+		m_clearColor.w=a;
+	}
+
+	void setFrameSize(int w, int h)
+	{
+		m_frameSize.x=w;
+		m_frameSize.y=h;
+	}
+
+	void draw(VertexArray vertexArray)
+	{
+		glViewport(0, 0, m_frameSize.x, m_frameSize.y);
+
+		// clear
+		glClearColor(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		m_program.use();
+		vertexArray.draw();
+	}
+
+	VertexArray mesh2vertexArray(Mesh mesh)
+	{
+		auto vertexArray=new VertexArray();
+
+		auto positions=new VertexBuffer();
+		positions.store(mesh.positions.ptr, mesh.positions.byteslen);
+		vertexArray.attribPointer(m_program.Attribs["VertexPosition"], positions);
+
+		auto colors=new VertexBuffer();
+		colors.store(mesh.colors.ptr, mesh.colors.byteslen);
+		vertexArray.attribPointer(m_program.Attribs["VertexColor"], colors);
+
+		auto texcoords=new VertexBuffer();
+		texcoords.store(mesh.texcoords.ptr, mesh.texcoords.byteslen);
+		vertexArray.attribPointer(m_program.Attribs["VertexTexCoord"], texcoords);
+
+		return vertexArray;	
+	}
+}
+
+
+class Mesh
+{
+	vec3!float[] positions;
+	vec3!float[] colors;
+	vec2!float[] texcoords;
+
+	static Mesh createTriangle(float size)
+	{
+		auto mesh=new Mesh();
+		mesh.positions=[
+			vec3!float(-size, -size, 0.0f),
+			vec3!float( size, -size, 0.0f),
+			vec3!float( 0.0f,  size, 0.0f),
+		];
+		mesh.colors=[
+			vec3!float(1.0f, 0.0f, 0.0f),
+			vec3!float(0.0f, 1.0f, 0.0f),
+			vec3!float(0.0f, 0.0f, 1.0f),
+		];
+		mesh.texcoords=[
+			vec2!float(0.0f, 0.0f),
+			vec2!float(1.0f, 0.0f),
+			vec2!float(0.5f, 1.0f),
+		];
+		return mesh;
+	}
+}
+
+
+class Rotator
+{
+	mat4!float Matrix=mat4!float.identity;
+
+	float m_angle=0;
+	float m_angleVelocity=radians!float(180);
+
+	void update(float delta)
+	{
+		m_angle+=delta * m_angleVelocity;
+		Matrix=mat4!float.rotateZ(m_angle);
 	}
 }
 
@@ -409,73 +545,19 @@ void main()
 
 	auto gl=new OpenGL();
 
-	auto vertShader=new Shader(GL_VERTEX_SHADER);
-	if(!vertShader.compile(simple_shader.vert))
+	auto renderPass=new RenderPass();
+	if(!renderPass.createShader(simple_shader.vert, simple_shader.frag))
 	{
 		return;
 	}
-	auto fragShader=new Shader(GL_FRAGMENT_SHADER);
-	if(!fragShader.compile(simple_shader.frag))
-	{
-		return;
-	}
-	auto program=new ShaderProgram();
-	program.attach(vertShader);
-	program.attach(fragShader);
-	if(!program.link()){
-		return;
-	}
+	renderPass.setClearColor(0.5f, 0.4f, 0.3f, 0);
 
-	auto positions=new VertexBuffer();
-	auto colors=new VertexBuffer();
-	auto texcoords=new VertexBuffer();
-	auto vertexArray=new VertexArray();
-
-	positions.store([
-		-0.8f, -0.8f, 0.0f,
-		 0.8f, -0.8f, 0.0f,
-		 0.0f,  0.8f, 0.0f,
-	]);
-	colors.store([
-		1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-	]);
-	vertexArray.attribPointer(program.Attribs["VertexPosition"], positions);
-	vertexArray.attribPointer(program.Attribs["VertexColor"], colors);
-
-	/*
-	positions.store([
-		-1.0f, -1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,
-		 1.0f,  1.0f, 0.0f,
-
-		 1.0f,  1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f,
-		-1.0f, -1.0f, 0.0f,
-	]);
-	texcoords.store([
-		0.0f, 0.0f,
-		1.0f, 0.0f,
-		1.0f,  1.0f,
-
-		1.0f,  1.0f,
-		0.0f,  1.0f,
-		0.0f, 0.0f,
-	]);
-	vertexArray.attribPointer(program.Attribs["VertexPosition"], positions);
-	vertexArray.attribPointer(program.Attribs["VertexTexCoord"], texcoords);
-	*/
-
-	float[] clearColor=[
-		0.5f, 0.4f, 0.3f, 0,
-	];
+	auto triangle=Mesh.createTriangle(0.8f);
+	auto vertexArray=renderPass.mesh2vertexArray(triangle);
 
 	// main loop
 	auto last_time=MonoTime.currTime;
-
-	float angle=0;
-	auto rotSpeed=radians!float(180);
+	auto rotator=new Rotator();
 	while (glfw.loop())
 	{	
 		// update
@@ -483,26 +565,16 @@ void main()
 		auto size=glfw.getSize();
 		auto windowSize=glfw.getWindowSize();
 		auto pos=glfw.getCursorPos();
-		glViewport(0, 0, size[0], size[1]);
-
 		auto delta=(current_time-last_time).total!"msecs" * 0.001;
 		last_time=current_time;
-
-		angle+=delta * rotSpeed;
-
-		auto m=mat4!float.rotateZ(angle);
-		writeln(m);
-		program.setUniform("RotationMatrix", m);
-
-		// clear
-		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-		glClear(GL_COLOR_BUFFER_BIT);
+		rotator.update(delta);
+		renderPass.setFrameSize(size[0], size[1]);
+		renderPass.m_program.setUniform("RotationMatrix", rotator.Matrix);
 
 		// draw
-		program.use();
-		vertexArray.draw(3, 2);
-		/*
+		renderPass.draw(vertexArray);
 
+		/*
 		// rendering 3D scene
 		renderer.clearRenderTarget(context.clear_color);
 		renderer.setViewport(size[0], size[1]);
