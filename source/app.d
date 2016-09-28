@@ -189,7 +189,7 @@ void main()
 	// main loop
 	while (glfw.loop())
 	{	
-		double current_time =  glfw.time();
+		double current_time =  0;
 		auto size=glfw.getSize();
 		auto windowSize=glfw.getWindowSize();
 		auto pos=glfw.getCursorPos();

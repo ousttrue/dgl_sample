@@ -7,11 +7,13 @@ import std.array;
 import std.typecons;
 import std.algorithm;
 import std.datetime;
+import core.stdc.string;
 import glfw;
 import derelict.opengl3.gl3;
 import gfm.math;
 import core.thread;
 static import simple_shader;
+static import circle_shader;
 
 
 class OpenGL
@@ -131,6 +133,16 @@ class ShaderProgram
 	Variable[string] Attribs;
 	Variable[string] Uniforms;
 
+	struct BlockVar
+	{
+	}
+	struct Block
+	{
+		string name;
+		byte[] buffer;
+	}
+	Block[string] Blocks;
+
 	this()
 	{
 		m_program=glCreateProgram();
@@ -221,10 +233,56 @@ class ShaderProgram
 				};
 				Uniforms[name]=uniform;
 			}
+
+			/*
+			{
+				auto name="BlobSettings";
+				GLuint blockIndex=glGetUniformBlockIndex(m_program, name.toStringz);
+				GLint blockSize;
+				glGetActiveUniformBlockiv(m_program, blockIndex
+					, GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
+				Block block={
+					name: name,
+					buffer: new byte[blockSize],
+				};
+
+				auto names=[
+					"InnerColor", "OuterColor", "RadiusInner", "RadiusOuter",
+				];
+
+				GLuint[4] indices;
+				glGetUniformIndices(m_program
+					, indices.length, names.map!(a => a.toStringz).array.ptr, indices.ptr);
+
+				GLint[4] offset;
+				glGetActiveUniformsiv(m_program
+					, offset.length, indices.ptr, GL_UNIFORM_OFFSET, offset.ptr);
+
+
+				auto outerColor=[0.0f, 0.0f, 0.0f, 0.0f];
+				auto innerColor=[1.0f, 1.0f, 0.75f, 1.0f];
+				auto innerRadius = 0.25f;
+				auto outerRadius = 0.45f;
+
+				memcpy(buf.ptr + offset[0], innerColor.ptr, float.sizeof * innerColor.length);
+				memcpy(buf.ptr + offset[1], outerColor.ptr, float.sizeof * outerColor.length);
+				memcpy(buf.ptr + offset[2], &innerRadius, float.sizeof);
+				memcpy(buf.ptr + offset[3], &outerRadius, float.sizeof);
+
+				Blocks[name]=block;
+
+				glGenBuffers(1, &m_ubo);
+				glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
+				glBufferData(GL_UNIFORM_BUFFER, blockSize, block.buffer.ptr, GL_DYNAMIC_DRAW);
+
+				glBindBufferBase(GL_UNIFORM_BUFFER, blockIndex, m_ubo);
+			}
+			*/
 		}
 
 		return true;
 	}
+	GLuint m_ubo;
 
 	void use()
 	{
@@ -321,7 +379,7 @@ class VertexArray
 		unbind();
 	}
 
-	void draw(int count, int elementCount)
+	void draw(int triangles, int elementCount)
 	{
 		glEnable(GL_BLEND);
 		glBlendEquation(GL_FUNC_ADD);
@@ -333,7 +391,7 @@ class VertexArray
 		bind();
 		for(int i=0; i<elementCount; ++i)glEnableVertexAttribArray(i);
 
-		glDrawArrays(GL_TRIANGLES, 0, 4);
+		glDrawArrays(GL_TRIANGLES, 0, triangles);
 
 		for(int i=0; i<elementCount; ++i)glDisableVertexAttribArray(i);
 		unbind();
@@ -369,21 +427,45 @@ void main()
 	}
 
 	auto positions=new VertexBuffer();
+	auto colors=new VertexBuffer();
+	auto texcoords=new VertexBuffer();
+	auto vertexArray=new VertexArray();
+
 	positions.store([
 		-0.8f, -0.8f, 0.0f,
 		 0.8f, -0.8f, 0.0f,
 		 0.0f,  0.8f, 0.0f,
 	]);
-	auto colors=new VertexBuffer();
 	colors.store([
 		1.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f,
 		0.0f, 0.0f, 1.0f,
 	]);
-
-	auto vertexArray=new VertexArray();
 	vertexArray.attribPointer(program.Attribs["VertexPosition"], positions);
 	vertexArray.attribPointer(program.Attribs["VertexColor"], colors);
+
+	/*
+	positions.store([
+		-1.0f, -1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		 1.0f,  1.0f, 0.0f,
+
+		 1.0f,  1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		-1.0f, -1.0f, 0.0f,
+	]);
+	texcoords.store([
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		1.0f,  1.0f,
+
+		1.0f,  1.0f,
+		0.0f,  1.0f,
+		0.0f, 0.0f,
+	]);
+	vertexArray.attribPointer(program.Attribs["VertexPosition"], positions);
+	vertexArray.attribPointer(program.Attribs["VertexTexCoord"], texcoords);
+	*/
 
 	float[] clearColor=[
 		0.5f, 0.4f, 0.3f, 0,
