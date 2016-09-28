@@ -159,17 +159,7 @@ class ShaderProgram
 			}
 		}
 	}
-	Attrib[] Attribs;
-	Attrib getAttrib(string name)
-	{
-		foreach(ref a; Attribs)
-		{
-			if(a.name==name){
-				return a;
-			}
-		}
-		throw new Exception("attrib not found");
-	}
+	Attrib[string] Attribs;
 
 	this()
 	{
@@ -231,7 +221,7 @@ class ShaderProgram
 				size: size,
 				type: type
 			};
-			Attribs~=attrib;
+			Attribs[name]=attrib;
 		}
 
 		return true;
@@ -356,7 +346,7 @@ void main()
 {
     // window
     auto glfw=new GLFW();
-    if(!glfw.createWindow(4, 1)){
+    if(!glfw.createWindow(4, 5)){
         return;
     }
 
@@ -393,8 +383,8 @@ void main()
 	]);
 
 	auto vertexArray=new VertexArray();
-	vertexArray.attribPointer(program.getAttrib("VertexPosition"), positions);
-	vertexArray.attribPointer(program.getAttrib("VertexColor"), colors);
+	vertexArray.attribPointer(program.Attribs["VertexPosition"], positions);
+	vertexArray.attribPointer(program.Attribs["VertexColor"], colors);
 
 	float[] clearColor=[
 		0.5f, 0.4f, 0.3f, 0,
