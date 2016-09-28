@@ -238,53 +238,53 @@ name: name,
                 };
                 Uniforms[name]=uniform;
             }
+		}
 
-            {
-                auto name="BlobSettings";
-                m_blockIndex=glGetUniformBlockIndex(m_program
-						, name.toStringz);
-                GLint blockSize;
-                glGetActiveUniformBlockiv(m_program, m_blockIndex
-                        , GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
-                Block block={
-                    name: name,
-                    buffer: new byte[blockSize],
-                };
+        {
+            auto name="BlobSettings";
+            m_blockIndex=glGetUniformBlockIndex(m_program
+					, name.toStringz);
+            GLint blockSize;
+            glGetActiveUniformBlockiv(m_program, m_blockIndex
+                    , GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
+            Block block={
+                name: name,
+                buffer: new byte[blockSize],
+            };
 
-                auto names=[
-                    "InnerColor", "OuterColor", "RadiusInner", "RadiusOuter",
-                ];
+            auto names=[
+                "InnerColor", "OuterColor", "RadiusInner", "RadiusOuter",
+            ];
 
-                GLuint[4] indices;
-                glGetUniformIndices(m_program
-                    , indices.length
-                    , names.map!(a => a.toStringz).array.ptr, indices.ptr);
+            GLuint[4] indices;
+            glGetUniformIndices(m_program
+                , indices.length
+                , names.map!(a => a.toStringz).array.ptr, indices.ptr);
 
-                GLint[4] offset;
-                glGetActiveUniformsiv(m_program
-                        , offset.length, indices.ptr, GL_UNIFORM_OFFSET, offset.ptr);
+            GLint[4] offset;
+            glGetActiveUniformsiv(m_program
+                    , offset.length, indices.ptr, GL_UNIFORM_OFFSET, offset.ptr);
 
-                auto outerColor=[0.0f, 0.0f, 0.0f, 0.0f];
-                auto innerColor=[1.0f, 1.0f, 0.75f, 1.0f];
-                auto innerRadius = 0.25f;
-                auto outerRadius = 0.45f;
+            auto outerColor=[0.0f, 0.0f, 0.0f, 0.0f];
+            auto innerColor=[1.0f, 1.0f, 0.75f, 1.0f];
+            auto innerRadius = 0.25f;
+            auto outerRadius = 0.45f;
 
-                memcpy(block.buffer.ptr + offset[0]
-                        , innerColor.ptr, innerColor.byteslen);
-                memcpy(block.buffer.ptr + offset[1]
-                        , outerColor.ptr, outerColor.byteslen);
-                memcpy(block.buffer.ptr + offset[2]
-                        , &innerRadius, float.sizeof);
-                memcpy(block.buffer.ptr + offset[3]
-                        , &outerRadius, float.sizeof);
+            memcpy(block.buffer.ptr + offset[0]
+                    , innerColor.ptr, innerColor.byteslen);
+            memcpy(block.buffer.ptr + offset[1]
+                    , outerColor.ptr, outerColor.byteslen);
+            memcpy(block.buffer.ptr + offset[2]
+                    , &innerRadius, float.sizeof);
+            memcpy(block.buffer.ptr + offset[3]
+                    , &outerRadius, float.sizeof);
 
-                //Blocks[name]=block;
+            //Blocks[name]=block;
 
-                glGenBuffers(1, &m_ubo);
-                glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
-                glBufferData(GL_UNIFORM_BUFFER
-                        , block.buffer.byteslen, block.buffer.ptr, GL_DYNAMIC_DRAW);
-            }
+            glGenBuffers(1, &m_ubo);
+            glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
+            glBufferData(GL_UNIFORM_BUFFER
+                    , block.buffer.byteslen, block.buffer.ptr, GL_DYNAMIC_DRAW);
         }
 
         auto m=mat4!float.identity;
