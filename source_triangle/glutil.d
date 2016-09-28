@@ -4,7 +4,10 @@ import scene;
 import std.conv;
 import std.exception;
 import std.experimental.logger;
+import std.algorithm;
+import std.array;
 import std.string;
+import core.stdc.string;
 
 
 int byteslen(T)(T[] array)
@@ -143,7 +146,7 @@ class ShaderProgram
         string name;
         byte[] buffer;
     }
-    Block[string] Blocks;
+    //Block[string] Blocks;
 
     this()
     {
@@ -228,81 +231,86 @@ name: name,
                 auto name=buf[0..written].to!string;
                 auto location = glGetUniformLocation(m_program, name.toStringz);
                 ShaderVariable uniform={
-name: name,
-      location: location,
-      size: size,
-      type: type
+                    name: name,
+                    location: location,
+                    size: size,
+                    type: type
                 };
                 Uniforms[name]=uniform;
             }
-            /*
-               {
-               auto name="BlobSettings";
-               GLuint blockIndex=glGetUniformBlockIndex(m_program, name.toStringz);
-               GLint blockSize;
-               glGetActiveUniformBlockiv(m_program, blockIndex
-               , GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
-               Block block={
-name: name,
-buffer: new byte[blockSize],
-};
 
-auto names=[
-"InnerColor", "OuterColor", "RadiusInner", "RadiusOuter",
-];
+            {
+                auto name="BlobSettings";
+                m_blockIndex=glGetUniformBlockIndex(m_program
+						, name.toStringz);
+                GLint blockSize;
+                glGetActiveUniformBlockiv(m_program, m_blockIndex
+                        , GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
+                Block block={
+                    name: name,
+                    buffer: new byte[blockSize],
+                };
 
-GLuint[4] indices;
-glGetUniformIndices(m_program
-, indices.length, names.map!(a => a.toStringz).array.ptr, indices.ptr);
+                auto names=[
+                    "InnerColor", "OuterColor", "RadiusInner", "RadiusOuter",
+                ];
 
-GLint[4] offset;
-glGetActiveUniformsiv(m_program
-, offset.length, indices.ptr, GL_UNIFORM_OFFSET, offset.ptr);
+                GLuint[4] indices;
+                glGetUniformIndices(m_program
+                    , indices.length
+                    , names.map!(a => a.toStringz).array.ptr, indices.ptr);
 
+                GLint[4] offset;
+                glGetActiveUniformsiv(m_program
+                        , offset.length, indices.ptr, GL_UNIFORM_OFFSET, offset.ptr);
 
-auto outerColor=[0.0f, 0.0f, 0.0f, 0.0f];
-auto innerColor=[1.0f, 1.0f, 0.75f, 1.0f];
-auto innerRadius = 0.25f;
-auto outerRadius = 0.45f;
+                auto outerColor=[0.0f, 0.0f, 0.0f, 0.0f];
+                auto innerColor=[1.0f, 1.0f, 0.75f, 1.0f];
+                auto innerRadius = 0.25f;
+                auto outerRadius = 0.45f;
 
-memcpy(buf.ptr + offset[0], innerColor.ptr, float.sizeof * innerColor.length);
-memcpy(buf.ptr + offset[1], outerColor.ptr, float.sizeof * outerColor.length);
-memcpy(buf.ptr + offset[2], &innerRadius, float.sizeof);
-memcpy(buf.ptr + offset[3], &outerRadius, float.sizeof);
+                memcpy(block.buffer.ptr + offset[0]
+                        , innerColor.ptr, innerColor.byteslen);
+                memcpy(block.buffer.ptr + offset[1]
+                        , outerColor.ptr, outerColor.byteslen);
+                memcpy(block.buffer.ptr + offset[2]
+                        , &innerRadius, float.sizeof);
+                memcpy(block.buffer.ptr + offset[3]
+                        , &outerRadius, float.sizeof);
 
-Blocks[name]=block;
+                //Blocks[name]=block;
 
-glGenBuffers(1, &m_ubo);
-glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
-glBufferData(GL_UNIFORM_BUFFER, blockSize, block.buffer.ptr, GL_DYNAMIC_DRAW);
+                glGenBuffers(1, &m_ubo);
+                glBindBuffer(GL_UNIFORM_BUFFER, m_ubo);
+                glBufferData(GL_UNIFORM_BUFFER
+                        , block.buffer.byteslen, block.buffer.ptr, GL_DYNAMIC_DRAW);
+            }
+        }
 
-glBindBufferBase(GL_UNIFORM_BUFFER, blockIndex, m_ubo);
-}
-             */
-}
+        auto m=mat4!float.identity;
+        setUniform("RotationMatrix", m);
 
-auto m=mat4!float.identity;
-setUniform("RotationMatrix", m);
+        return true;
+    }
+    GLuint m_ubo;
+	int m_blockIndex;
 
-return true;
-}
-GLuint m_ubo;
+    void use()
+    {
+        glUseProgram(m_program);
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_blockIndex, m_ubo);
+    }
 
-void use()
-{
-    glUseProgram(m_program);
-}
+    GLuint getUniformLocation(string name)
+    {
+        return glGetUniformLocation(m_program, name.toStringz);
+    }
 
-GLuint getUniformLocation(string name)
-{
-    return glGetUniformLocation(m_program, name.toStringz);
-}
-
-void setUniform(string name, const ref mat4!float value)
-{
-    glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, 
-            value.ptr);
-}
+    void setUniform(string name, const mat4!float value)
+    {
+        glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, 
+                value.ptr);
+    }
 }
 
 
@@ -351,13 +359,13 @@ class VertexArray
 {
     GLuint m_vao;
     VertexBuffer[] m_buffers;
-	int m_vertexCount;
+    int m_vertexCount;
 
     this(int vertexCount)
     {
         glGenVertexArrays(1, &m_vao);
         enforce(m_vao!=0, "fail to glGenVertexArrays");
-		m_vertexCount=vertexCount;
+        m_vertexCount=vertexCount;
     }
 
     ~this()
@@ -482,3 +490,4 @@ class RenderPass
         return vertexArray;	
     }
 }
+
