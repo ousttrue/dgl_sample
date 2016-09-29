@@ -253,7 +253,7 @@ name: name,
             };
 
             auto names=[
-                "InnerColor", "OuterColor", "RadiusInner", "RadiusOuter",
+                "uInnerColor", "uOuterColor", "uRadiusInner", "uRadiusOuter",
             ];
 
             GLuint[4] indices;
@@ -477,15 +477,15 @@ class RenderPass
 
         auto positions=new VertexBuffer();
         positions.store(mesh.positions.ptr, mesh.positions.byteslen);
-        vertexArray.attribPointer(m_program.Attribs["VertexPosition"], positions);
+        vertexArray.attribPointer(m_program.Attribs["aVertex"], positions);
 
         auto colors=new VertexBuffer();
         colors.store(mesh.colors.ptr, mesh.colors.byteslen);
-        vertexArray.attribPointer(m_program.Attribs["VertexColor"], colors);
+        vertexArray.attribPointer(m_program.Attribs["aColor"], colors);
 
         auto texcoords=new VertexBuffer();
         texcoords.store(mesh.texcoords.ptr, mesh.texcoords.byteslen);
-        vertexArray.attribPointer(m_program.Attribs["VertexTexCoord"], texcoords);
+        vertexArray.attribPointer(m_program.Attribs["aTexCoord0"], texcoords);
 
         return vertexArray;	
     }
