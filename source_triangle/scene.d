@@ -1,68 +1,71 @@
 import gfm.math;
 
 
-class Mesh
+struct Vertex
 {
-	int vertexCount;
-    vec3!float[] positions;
-    vec3!float[] colors;
-    vec2!float[] texcoords;
+	vec3!float aVertex;
+	vec3!float aColor;
+	vec2!float aTexCoord0;
+}
 
-    static Mesh createTriangle(float size)
-    {
-        auto mesh=new Mesh();
-		mesh.vertexCount=3;
-        mesh.positions=[
+
+static Vertex[] createTriangle(float size)
+{
+	return [
+		Vertex(
+			vec3!float(-size, -size, 0.0f),
+			vec3!float(1.0f, 0.0f, 0.0f),
+			vec2!float(0.0f, 0.0f),
+		),
+		Vertex(
+			   vec3!float( size, -size, 0.0f),
+			   vec3!float(0.0f, 1.0f, 0.0f),
+			   vec2!float(1.0f, 0.0f),
+			   ),
+		Vertex(
+			   vec3!float( 0.0f,  size, 0.0f),
+			   vec3!float(0.0f, 0.0f, 1.0f),
+			   vec2!float(0.5f, 1.0f),
+			   ),
+	];
+}
+
+
+static Vertex[] createQuadrangle(float size)
+{
+	return [
+		Vertex(
             vec3!float(-size, -size, 0.0f),
-            vec3!float( size, -size, 0.0f),
-            vec3!float( 0.0f,  size, 0.0f),
-        ];
-        mesh.colors=[
-            vec3!float(1.0f, 0.0f, 0.0f),
-            vec3!float(0.0f, 1.0f, 0.0f),
-            vec3!float(0.0f, 0.0f, 1.0f),
-        ];
-        mesh.texcoords=[
-            vec2!float(0.0f, 0.0f),
-            vec2!float(1.0f, 0.0f),
-            vec2!float(0.5f, 1.0f),
-        ];
-        return mesh;
-    }
-
-	static Mesh createQuadrangle(float size)
-	{
-        auto mesh=new Mesh();
-		mesh.vertexCount=6;
-        mesh.positions=[
-            vec3!float(-size, -size, 0.0f),
-            vec3!float( size, -size, 0.0f),
+            vec3!float(1.0f, 1.0f, 1.0f),
+            vec2!float(0.0f, 0.0f)
+			),
+		Vertex(
+			vec3!float( size, -size, 0.0f),
+            vec3!float(1.0f, 1.0f, 1.0f),
+            vec2!float(1.0f, 0.0f)
+			),
+		Vertex(
             vec3!float( size,  size, 0.0f),
+            vec3!float(1.0f, 1.0f, 1.0f),
+            vec2!float(1.0f, 1.0f)
+			),
 
+		Vertex(
             vec3!float( size,  size, 0.0f),
+            vec3!float(1.0f, 1.0f, 1.0f),
+            vec2!float(1.0f, 1.0f)
+			),
+		Vertex(
 			vec3!float(-size,  size, 0.0f),
-            vec3!float(-size, -size, 0.0f),
-        ];
-        mesh.colors=[
             vec3!float(1.0f, 1.0f, 1.0f),
+            vec2!float(0.0f, 1.0f)
+			),
+		Vertex(
+			vec3!float(-size, -size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
-            vec3!float(1.0f, 1.0f, 1.0f),
-
-            vec3!float(1.0f, 1.0f, 1.0f),
-            vec3!float(1.0f, 1.0f, 1.0f),
-            vec3!float(1.0f, 1.0f, 1.0f),
-        ];
-        mesh.texcoords=[
-            vec2!float(0.0f, 0.0f),
-            vec2!float(1.0f, 0.0f),
-            vec2!float(1.0f, 1.0f),
-
-            vec2!float(1.0f, 1.0f),
-            vec2!float(0.0f, 1.0f),
-            vec2!float(0.0f, 0.0f),
-        ];
-        return mesh;
-	}
+            vec2!float(0.0f, 0.0f)
+			)
+	];
 }
 
 
@@ -79,4 +82,3 @@ class Rotator
         Matrix=mat4!float.rotateZ(m_angle);
     }
 }
-

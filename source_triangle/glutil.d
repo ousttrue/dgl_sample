@@ -383,13 +383,18 @@ class VertexArray
         glBindVertexArray(0);
     }
 
-    void attribPointer(ShaderVariable attrib, VertexBuffer buffer)
+    void attribPointer(T, alias name)(ShaderProgram program, VertexBuffer buffer)
+	{
+		attribPointer(program.Attribs[name], buffer, T.sizeof, mixin("T."~name~".offsetof"));
+	}
+
+    void attribPointer(ShaderVariable attrib, VertexBuffer buffer, int stride, int offset=0)
     {
         bind();
         buffer.bind();
         glVertexAttribPointer(attrib.location
                 , attrib.elementCount, attrib.elementType
-                , GL_FALSE, 0, null);
+                , GL_FALSE, stride, cast(void*)offset);
         buffer.unbind();
         unbind();
 
@@ -471,23 +476,18 @@ class RenderPass
         vertexArray.draw();
     }
 
-    VertexArray mesh2vertexArray(Mesh mesh)
+    VertexArray mesh2vertexArray(T)(T[] mesh)
     {
-        auto vertexArray=new VertexArray(mesh.vertexCount);
+        auto vertexArray=new VertexArray(mesh.length);
 
-        auto positions=new VertexBuffer();
-        positions.store(mesh.positions.ptr, mesh.positions.byteslen);
-        vertexArray.attribPointer(m_program.Attribs["aVertex"], positions);
+        auto vertices=new VertexBuffer();
+        vertices.store(mesh.ptr, mesh.byteslen);
 
-        auto colors=new VertexBuffer();
-        colors.store(mesh.colors.ptr, mesh.colors.byteslen);
-        vertexArray.attribPointer(m_program.Attribs["aColor"], colors);
 
-        auto texcoords=new VertexBuffer();
-        texcoords.store(mesh.texcoords.ptr, mesh.texcoords.byteslen);
-        vertexArray.attribPointer(m_program.Attribs["aTexCoord0"], texcoords);
+        vertexArray.attribPointer!(Vertex, "aVertex")( m_program, vertices);
+        vertexArray.attribPointer!(Vertex, "aColor")( m_program, vertices);
+        vertexArray.attribPointer!(Vertex, "aTexCoord0")( m_program, vertices);
 
         return vertexArray;	
     }
 }
-

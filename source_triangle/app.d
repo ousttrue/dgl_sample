@@ -25,7 +25,7 @@ void main()
 	renderPass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	//auto mesh=scene.Mesh.createTriangle(0.8f);
-	auto mesh=scene.Mesh.createQuadrangle(1.0f);
+	auto mesh=scene.createQuadrangle(1.0f);
 	auto vertexArray=renderPass.mesh2vertexArray(mesh);
 
 	// main loop
