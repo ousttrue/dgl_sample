@@ -1,71 +1,125 @@
 import gfm.math;
+import std.typecons;
+import core.stdc.string;
+import std.traits;
 
 
-struct Vertex
+class Vertices(T...)
 {
-	vec3!float aVertex;
-	vec3!float aColor;
-	vec2!float aTexCoord0;
+	alias Vertex=Tuple!(T);
+	Vertex[] vertices;
+
+	@property static int vertexSize()
+	{
+		return Vertex.sizeof;
+	}
+
+	@property int vertexCount()
+	{
+		return vertices.length;
+	}
+
+	@property int bytesLength()
+	{
+		return Vertex.sizeof * vertices.length;
+	}
+
+	@property void* ptr()
+	{
+		return vertices.ptr;
+	}
+
+	@property int offsetof(string attribute)()
+	{
+		return mixin("Vertex."~attribute~".offsetof");
+	}
+
+	this()
+	{
+	}
+
+	this(int length)
+	{
+		vertices.length=length;
+	}
+
+	void set(V...)(int index, V args)
+	{
+		vertices[index]=tuple(args);
+	}
+
+	void push(V...)(V args)
+	{
+		vertices~=tuple(args);
+	}
 }
 
 
-static Vertex[] createTriangle(float size)
+static auto createTriangle(float size)
 {
-	return [
-		Vertex(
-			vec3!float(-size, -size, 0.0f),
-			vec3!float(1.0f, 0.0f, 0.0f),
-			vec2!float(0.0f, 0.0f),
-		),
-		Vertex(
-			   vec3!float( size, -size, 0.0f),
-			   vec3!float(0.0f, 1.0f, 0.0f),
-			   vec2!float(1.0f, 0.0f),
-			   ),
-		Vertex(
-			   vec3!float( 0.0f,  size, 0.0f),
-			   vec3!float(0.0f, 0.0f, 1.0f),
-			   vec2!float(0.5f, 1.0f),
-			   ),
-	];
+	auto vs=new Vertices!(
+						  vec3!float, "aPosition"
+						  , vec3!float, "aColor"
+						  , vec2!float, "aTexCoord0"
+						  )(3);
+	vs.set(0,
+		   vec3!float(-size, -size, 0.0f),
+		   vec3!float(1.0f, 0.0f, 0.0f),
+		   vec2!float(0.0f, 0.0f),
+		   );
+	vs.set(1,
+			vec3!float( size, -size, 0.0f),
+			vec3!float(0.0f, 1.0f, 0.0f),
+			vec2!float(1.0f, 0.0f),
+			);
+	vs.set(2,
+			vec3!float( 0.0f,  size, 0.0f),
+			vec3!float(0.0f, 0.0f, 1.0f),
+			vec2!float(0.5f, 1.0f),
+			);
+	return vs;
 }
 
 
-static Vertex[] createQuadrangle(float size)
+static auto createQuadrangle(float size)
 {
-	return [
-		Vertex(
+	auto vs=new Vertices!(
+		vec3!float, "aPosition"
+		, vec3!float, "aColor"
+		, vec2!float, "aTexCoord0"
+		)(6);
+	vs.set(0, 
             vec3!float(-size, -size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(0.0f, 0.0f)
-			),
-		Vertex(
+			);
+	vs.set(1,
 			vec3!float( size, -size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(1.0f, 0.0f)
-			),
-		Vertex(
+			);
+	vs.set(2,
             vec3!float( size,  size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(1.0f, 1.0f)
-			),
+			);
 
-		Vertex(
+	vs.set(3,
             vec3!float( size,  size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(1.0f, 1.0f)
-			),
-		Vertex(
+			);
+	vs.set(4,
 			vec3!float(-size,  size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(0.0f, 1.0f)
-			),
-		Vertex(
+			);
+	vs.set(5,
 			vec3!float(-size, -size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(0.0f, 0.0f)
-			)
-	];
+			);
+	return vs;
 }
 
 

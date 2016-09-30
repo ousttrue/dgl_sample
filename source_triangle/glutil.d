@@ -476,17 +476,18 @@ class RenderPass
         vertexArray.draw();
     }
 
-    VertexArray mesh2vertexArray(T)(T[] mesh)
+    VertexArray mesh2vertexArray(T...)(Vertices!T mesh)
     {
-        auto vertexArray=new VertexArray(mesh.length);
+        auto vertexArray=new VertexArray(mesh.vertexCount);
 
-        auto vertices=new VertexBuffer();
-        vertices.store(mesh.ptr, mesh.byteslen);
+        auto buffer=new VertexBuffer();
+        buffer.store(mesh.ptr, mesh.bytesLength);
 
-
-        vertexArray.attribPointer!(Vertex, "aVertex")( m_program, vertices);
-        vertexArray.attribPointer!(Vertex, "aColor")( m_program, vertices);
-        vertexArray.attribPointer!(Vertex, "aTexCoord0")( m_program, vertices);
+		foreach(a; mesh.Vertex.fieldNames)
+		{
+			vertexArray.attribPointer(m_program.Attribs[a]
+				, buffer, mesh.vertexSize, mesh.offsetof!a);
+		}
 
         return vertexArray;	
     }

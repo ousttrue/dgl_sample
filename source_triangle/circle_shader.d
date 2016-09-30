@@ -1,7 +1,7 @@
 auto vert="
 #version 400
 
-layout(location=0) in vec3 aVertex;
+layout(location=0) in vec3 aPosition;
 layout(location=1) in vec3 aColor;
 layout(location=2) in vec2 aTexCoord0;
 
@@ -12,7 +12,7 @@ void main()
 {
 	fColor=aColor;
     fTexCoord=aTexCoord0;
-    gl_Position = vec4(aVertex, 1.0);
+    gl_Position = vec4(aPosition, 1.0);
 }
 ";
 
