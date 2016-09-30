@@ -18,15 +18,21 @@ void main()
 	auto gl=new glutil.OpenGL();
 
 	auto renderPass=new glutil.RenderPass();
-	if(!renderPass.createShader(circle_shader.vert, circle_shader.frag))
+	if(!renderPass.createShader!(simple_shader)())
 	{
 		return;
 	}
 	renderPass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-	//auto mesh=scene.Mesh.createTriangle(0.8f);
-	auto mesh=scene.createQuadrangle(1.0f);
-	auto vertexArray=renderPass.mesh2vertexArray(mesh);
+	auto vertices=new scene.Vertices!(
+		vec3!float, "aPosition"
+		, vec3!float, "aColor"
+		, vec2!float, "aTexCoord0"
+		)();
+
+	vertices.store(scene.createTriangle(0.5f));
+
+	auto vertexArray=renderPass.mesh2vertexArray(vertices);
 
 	// main loop
 	auto last_time=MonoTime.currTime;
@@ -42,7 +48,7 @@ void main()
 		last_time=current_time;
 		rotator.update(delta);
 		renderPass.setFrameSize(size[0], size[1]);
-		renderPass.m_program.setUniform("RotationMatrix", mat4!float.identity);
+		renderPass.m_program.setUniform("uRotationMatrix", mat4!float.identity);
 
 		// draw
 		renderPass.draw(vertexArray);

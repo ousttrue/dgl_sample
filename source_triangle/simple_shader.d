@@ -1,20 +1,20 @@
 auto vert="
 #version 400
 
-layout(location=0) in vec3 VertexPosition;
-layout(location=1) in vec3 VertexColor;
-layout(location=2) in vec2 VertexTexCoord;
+layout(location=0) in vec3 aPosition;
+layout(location=1) in vec3 aColor;
+layout(location=2) in vec2 aTexCoord0;
 
-out vec3 Color;
-out vec2 TexCoord;
+out vec3 fColor;
+out vec2 fTexCoord0;
 
-uniform mat4 RotationMatrix;
+uniform mat4 uRotationMatrix;
 
 void main()
 {
-	Color=VertexColor;
-	TexCoord=VertexTexCoord;
-	gl_Position = RotationMatrix * vec4(VertexPosition, 1.0);
+	fColor=aColor;
+	fTexCoord0=aTexCoord0;
+	gl_Position = uRotationMatrix * vec4(aPosition, 1.0);
 }
 ";
 
@@ -22,12 +22,12 @@ void main()
 auto frag="
 #version 400
 
-in vec3 Color;
+in vec3 fColor;
 
-out vec4 FragColor;
+layout(location=0) out vec4 out_FragColor;
 
 void main()
 {
-	FragColor = vec4(Color, 1.0);
+	out_FragColor = vec4(fColor, 1.0);
 }
 ";

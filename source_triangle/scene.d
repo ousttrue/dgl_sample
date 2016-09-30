@@ -48,36 +48,47 @@ class Vertices(T...)
 		vertices[index]=tuple(args);
 	}
 
-	void push(V...)(V args)
+	void push(V...)(Tuple!V v)
 	{
-		vertices~=tuple(args);
+		vertices~=v;
+	}
+
+	void store(V...)(Tuple!V[] vertices)
+	{
+		foreach(v; vertices)
+		{
+			push(v);
+		}
 	}
 }
 
 
-static auto createTriangle(float size)
+alias Vertex=Tuple!(
+	vec3!float, "aPosition"
+	, vec3!float, "aColor"
+	, vec2!float, "aTexCoord0"
+	);
+
+
+static Vertex[] createTriangle(float size)
 {
-	auto vs=new Vertices!(
-						  vec3!float, "aPosition"
-						  , vec3!float, "aColor"
-						  , vec2!float, "aTexCoord0"
-						  )(3);
-	vs.set(0,
+	return [
+		Vertex(
 		   vec3!float(-size, -size, 0.0f),
 		   vec3!float(1.0f, 0.0f, 0.0f),
-		   vec2!float(0.0f, 0.0f),
-		   );
-	vs.set(1,
+		   vec2!float(0.0f, 0.0f)
+		   ),
+		Vertex(
 			vec3!float( size, -size, 0.0f),
 			vec3!float(0.0f, 1.0f, 0.0f),
-			vec2!float(1.0f, 0.0f),
-			);
-	vs.set(2,
+			vec2!float(1.0f, 0.0f)
+			),
+		Vertex(
 			vec3!float( 0.0f,  size, 0.0f),
 			vec3!float(0.0f, 0.0f, 1.0f),
 			vec2!float(0.5f, 1.0f),
-			);
-	return vs;
+			)
+	];
 }
 
 
@@ -121,7 +132,6 @@ static auto createQuadrangle(float size)
 			);
 	return vs;
 }
-
 
 class Rotator
 {
