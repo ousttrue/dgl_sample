@@ -15,8 +15,10 @@ void main()
         return;
     }
 
+	// gl
 	auto gl=new glutil.OpenGL();
 
+	// renderpass
 	auto renderPass=new glutil.RenderPass();
 	if(!renderPass.createShader!(simple_shader)())
 	{
@@ -24,14 +26,13 @@ void main()
 	}
 	renderPass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+	// scene
 	auto vertices=new scene.Vertices!(
 		vec3!float, "aPosition"
 		, vec3!float, "aColor"
 		, vec2!float, "aTexCoord0"
 		)();
-
 	vertices.store(scene.createTriangle(0.5f));
-
 	auto vertexArray=renderPass.mesh2vertexArray(vertices);
 
 	// main loop

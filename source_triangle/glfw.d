@@ -1,14 +1,51 @@
 import derelict.glfw3.glfw3;
+import std.experimental.logger;
+import std.stdio;
+import std.conv;
 
+
+struct User
+{
+	GLFW that;
+}
 
 extern(C) nothrow void error_callback(int error, const(char)* description)
 {
-	import std.stdio;
-    import std.conv;
-	try writefln("glfw err: %s ('%s')",error, to!string(description));
+	try {
+		errorf("glfw err: %s ('%s')",error, description.to!string);
+	}
 	catch{}
 }
 
+extern(C) nothrow static void cursor_position_callback(GLFWwindow* window
+													   , double xpos, double ypos)
+{
+	try{
+		auto p=cast(User*)glfwGetWindowUserPointer(window);
+		p.that.onMousePosition(xpos, ypos);
+	}
+	catch{}
+}
+
+extern(C) nothrow void mouse_button_callback(GLFWwindow* window
+											 , int button, int action, int mods)
+{
+	try{
+		auto p=cast(User*)glfwGetWindowUserPointer(window);
+		p.that.onMouseButton(button, action, mods);
+	}
+	catch{}
+}
+
+extern(C) nothrow void scroll_callback(GLFWwindow* window
+									   , double xoffset, double yoffset)
+{
+	try{
+		auto p=cast(User*)glfwGetWindowUserPointer(window);
+		p.that.onScroll(xoffset, yoffset);
+	}
+	catch{}
+}
 
 class GLFW
 {
@@ -18,14 +55,36 @@ class GLFW
 		return m_window;
 	}
 
+	User m_user;
+
 	static this()
 	{
 		DerelictGLFW3.load();
 	}
 
+	this()
+	{
+		m_user.that=this;
+	}
+
 	~this()
 	{
 		glfwTerminate();
+	}
+
+	void onMousePosition(double xpos, double ypos)
+	{
+		logf("%s x %s", xpos, ypos);
+	}
+
+	void onMouseButton(int button, int action, int mods)
+	{
+		logf("%s, %s, %s", button, action, mods);
+	}
+
+	void onScroll(double xoffset, double yoffset)
+	{
+		logf("%s, %s", xoffset, yoffset);
 	}
 
 	bool createWindow(int major, int minor)
@@ -35,6 +94,7 @@ class GLFW
 		if (!glfwInit()){
 			return false;
 		}
+
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -46,6 +106,14 @@ class GLFW
 		}
 		glfwMakeContextCurrent(m_window);
 		glfwInit();
+
+		glfwSetWindowUserPointer(m_window, &m_user);
+
+		// mouse callback
+		glfwSetCursorPosCallback(m_window, &cursor_position_callback);
+		glfwSetMouseButtonCallback(m_window, &mouse_button_callback);
+		glfwSetScrollCallback(m_window, &scroll_callback);
+
 		return true;
 	}
 
