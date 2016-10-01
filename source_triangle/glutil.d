@@ -111,6 +111,9 @@ struct ShaderVariable
             case GL_FLOAT_VEC3:
                 return 3;
 
+            case GL_FLOAT_VEC4:
+                return 4;
+
             default:
                 throw new Exception("unknown type");
         }
@@ -120,6 +123,7 @@ struct ShaderVariable
     {
         switch(type)
         {
+            case GL_FLOAT_VEC4:
             case GL_FLOAT_VEC3:
             case GL_FLOAT_VEC2:
                 return GL_FLOAT;
@@ -311,8 +315,16 @@ name: name,
 
     void setUniform(string name, const mat4!float value)
     {
+		use();
         glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, 
                 value.ptr);
+    }
+
+    void setUniform(string name, const float[4][4] value)
+    {
+        glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, 
+						   &value[0][0]);
+
     }
 }
 
@@ -322,10 +334,6 @@ class VertexBuffer
     GLuint m_vbo;
 
     GLuint get()const{ return m_vbo; }
-
-    @property GLuint elementCount()const{ return 3; }
-
-    @property GLenum elementType()const{ return GL_FLOAT; }
 
     this()
     {
@@ -343,17 +351,54 @@ class VertexBuffer
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     }
 
+    void unbind()
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
     void store(void* data, int len)
     {
         bind();
         glBufferData(GL_ARRAY_BUFFER
-                , len, data, GL_STATIC_DRAW);
+					 , len, data, GL_STATIC_DRAW);
         unbind();
     }
+}
 
-    void unbind()
+
+class IndexBuffer
+{
+    GLuint m_ibo;
+
+    GLuint get()const{ return m_ibo; }
+
+	this()
+	{
+        glGenBuffers(1, &m_ibo);
+        enforce(m_ibo!=0, "");
+	}
+
+	~this()
+	{
+        glDeleteBuffers(1, &m_ibo);
+	}
+
+	void bind()
+	{
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
+	}
+
+	void unbind()
+	{
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
+
+    void store(void* data, int len)
     {
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        bind();
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER
+					 , len, data, GL_STATIC_DRAW);
+        unbind();
     }
 }
 
@@ -362,13 +407,14 @@ class VertexArray
 {
     GLuint m_vao;
     VertexBuffer[] m_buffers;
-    int m_vertexCount;
 
-    this(int vertexCount)
+	IndexBuffer m_indices;
+
+    this(IndexBuffer indices=null)
     {
         glGenVertexArrays(1, &m_vao);
         enforce(m_vao!=0, "fail to glGenVertexArrays");
-        m_vertexCount=vertexCount;
+        m_indices=indices;
     }
 
     ~this()
@@ -379,10 +425,20 @@ class VertexArray
     void bind()
     {
         glBindVertexArray(m_vao);
+		foreach(b; m_buffers)
+		{
+			b.bind();
+		}
+		if(m_indices)m_indices.bind();
     }
 
     void unbind()
     {
+		if(m_indices)m_indices.unbind();
+		foreach(b; m_buffers)
+		{
+			b.unbind();
+		}
         glBindVertexArray(0);
     }
 
@@ -404,22 +460,30 @@ class VertexArray
         m_buffers~=buffer;
     }
 
-    void draw()
+    void draw(int count, ushort* offset)
     {
+		/*
         glEnable(GL_BLEND);
         glBlendEquation(GL_FUNC_ADD);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_SCISSOR_TEST);
+		*/
 
-        bind();
         for(int i=0; i<m_buffers.length; ++i)glEnableVertexAttribArray(i);
 
-        glDrawArrays(GL_TRIANGLES, 0, m_vertexCount);
+		if(m_indices){
+			glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT
+						   , offset);
+		}
+		else{
+			bind();
+			glDrawArrays(GL_TRIANGLES, cast(int)offset, count);
+			unbind();
+		}
 
         for(int i=0; i<m_buffers.length; ++i)glDisableVertexAttribArray(i);
-        unbind();
     }
 }
 
@@ -427,6 +491,10 @@ class VertexArray
 class Texture
 {
     GLuint m_texture;
+	GLuint get()
+	{
+		return m_texture;
+	}
 
     this()
     {
@@ -448,7 +516,7 @@ class Texture
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    void loadImageRGBA(int width, int height, ubyte *pixels)
+    void loadImageRGBA(ubyte *pixels, int width, int height)
     {
         bind();
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -465,6 +533,8 @@ class RenderPass: IRenderer
     ShaderProgram m_program;
     vec4!float m_clearColor;
     vec2!int m_frameSize;
+	VertexArray m_mesh;
+	Texture m_texture;
 
 	bool createShader(alias m)()
 	{
@@ -508,62 +578,111 @@ class RenderPass: IRenderer
         m_frameSize.y=h;
     }
 
-    void draw(VertexArray vertexArray)
-    {
+	void clear()
+	{
         glViewport(0, 0, m_frameSize.x, m_frameSize.y);
 
         // clear
         glClearColor(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
         glClear(GL_COLOR_BUFFER_BIT);
+	}
 
-        m_program.use();
-        vertexArray.draw();
-    }
-
-    VertexArray mesh2vertexArray(T...)(Vertices!T mesh)
+    void mesh2vertexArray(T...)(Vertices!T mesh, ushort[] indices=[])
     {
-        auto vertexArray=new VertexArray(mesh.vertexCount);
+        m_mesh=new VertexArray;
 
         auto buffer=new VertexBuffer();
-        buffer.store(mesh.ptr, mesh.bytesLength);
+		if(mesh.bytesLength>0){
+			buffer.store(mesh.ptr, mesh.bytesLength);
+		}
 
 		foreach(a; mesh.Vertex.fieldNames)
 		{
-			vertexArray.attribPointer(m_program.Attribs[a]
+			m_mesh.attribPointer(m_program.Attribs[a]
 				, buffer, mesh.vertexSize, mesh.offsetof!a);
 		}
 
-        return vertexArray;	
+		if(mesh.m_useIndices || indices.length>0)
+		{
+			m_mesh.m_indices=new IndexBuffer();
+			m_mesh.m_indices.store(indices.ptr, indices.byteslen);
+		}
     }
 
-	void CreateDeviceObjects(uint vertexSize, uint uvOffset, uint colorOffset)
+	GLint m_last_program;
+	GLint m_last_texture;
+	nothrow void begin(float width, float height)
 	{
+		try{
+		// Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled
+		glGetIntegerv(GL_CURRENT_PROGRAM, &m_last_program);
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &m_last_texture);
+		glEnable(GL_BLEND);
+		glBlendEquation(GL_FUNC_ADD);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_SCISSOR_TEST);
+		glActiveTexture(GL_TEXTURE0);
+
+		const float[4][4] ortho_projection =
+		[
+			[ 2.0f/width,	0.0f,			0.0f,		0.0f ],
+			[ 0.0f,			2.0f/-height,	0.0f,		0.0f ],
+			[ 0.0f,			0.0f,			-1.0f,		0.0f ],
+			[ -1.0f,		1.0f,			0.0f,		1.0f ],
+		];
+
+		m_program.use();
+		m_program.setUniform("ProjMtx", ortho_projection);
+
+		m_mesh.bind();
+		}
+		catch{}
 	}
 
-	void* CreateFonts(ubyte* pixels, int width, int height)
+	nothrow void setVertices(void *vertices, int len)
 	{
-		return null;
+        glBufferData(GL_ARRAY_BUFFER, len, cast(GLvoid*)vertices, GL_STREAM_DRAW);
 	}
 
-    nothrow void begin(float width, float height)
-    {
-    }
+	nothrow void setIndices(void *indices, int len)
+	{
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, len, indices, GL_STREAM_DRAW);
+	}
 
-    nothrow void setVertices(void *vertices, int len)
-    {
-    }
+	void draw(uint count, ushort *offset)
+	{
+		m_program.use();
+		m_mesh.bind();
+		draw(null, 0, 0, m_frameSize.x, m_frameSize.y, count, offset);
+	}
 
-    nothrow void setIndices(void *indices, int len)
-    {
-    }
-
-    nothrow void draw(void* textureId
+	nothrow void draw(void* textureId
 					  , int x, int y, int w, int h
-						  , uint count, ushort* offset)
-    {
-    }
+					  , uint count, ushort* offset)
+	{
+		try{
 
-    nothrow void end()
-    {
-    }
+
+		glScissor(x, y, w, h);
+		if(m_texture)m_texture.bind();
+		if(m_mesh)m_mesh.draw(count, offset);
+		}
+		catch{}
+	}
+
+	nothrow void end()
+	{
+		try{
+		// Restore modified state
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glUseProgram(m_last_program);
+		glDisable(GL_SCISSOR_TEST);
+		glBindTexture(GL_TEXTURE_2D, m_last_texture);
+		}
+		catch{}
+	}
 }

@@ -8,6 +8,8 @@ class Vertices(T...)
 {
 	alias Vertex=Tuple!(T);
 	Vertex[] vertices;
+	bool m_useIndices;
+	ushort[] indices;
 
 	@property static int vertexSize()
 	{
@@ -34,8 +36,9 @@ class Vertices(T...)
 		return mixin("Vertex."~attribute~".offsetof");
 	}
 
-	this()
+	this(bool useIndices=false)
 	{
+		m_useIndices=useIndices;
 	}
 
 	this(int length)
@@ -63,11 +66,11 @@ class Vertices(T...)
 }
 
 
-alias Vertex=Tuple!(
-	vec3!float, "aPosition"
-	, vec3!float, "aColor"
-	, vec2!float, "aTexCoord0"
-	);
+alias Vertex = Tuple!(
+					  vec3!float, "aPosition"
+					  , vec3!float, "aColor"
+						  , vec2!float, "aTexCoord0"
+					  );
 
 
 static Vertex[] createTriangle(float size)
@@ -132,6 +135,7 @@ static auto createQuadrangle(float size)
 			);
 	return vs;
 }
+
 
 class Rotator
 {

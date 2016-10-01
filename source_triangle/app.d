@@ -1,13 +1,14 @@
 import glfw;
 import gfm.math;
-
-import fpsclock;
+import irenderer;
 import renderer;
+import fpsclock;
 static import gui;
 static import glutil;
 static import scene;
 static import shader.simple;
 static import shader.circle;
+static import shader.imgui;
 
 import std.typecons;
 
@@ -77,45 +78,74 @@ void main()
 	// gl
 	auto gl=new glutil.OpenGL();
 
-	// renderpass
+	// 3D renderer
 	auto renderPass=new glutil.RenderPass();
-	if(!renderPass.createShader!(shader.simple)())
+	if(!renderPass.createShader!(shader.simple))
 	{
 		return;
 	}
 	renderPass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-	// scene
 	auto vertices=new scene.Vertices!(
 		vec3!float, "aPosition"
 		, vec3!float, "aColor"
 		, vec2!float, "aTexCoord0"
 		)();
 	vertices.store(scene.createTriangle(0.5f));
-	auto vertexArray=renderPass.mesh2vertexArray(vertices);
+	ushort[] indices=[0, 1, 2];
+	renderPass.mesh2vertexArray(vertices, indices);
 
 	// gui
 	WindowContext windowContext;
 	MouseContext mouseContext;
-
-    // opengl
-    auto scope renderer=new Renderer();
-    renderer.CreateDeviceObjects(gui.vertexSize, gui.uvOffset, gui.colorOffset);
-
-    // setup font
-    {
-        ubyte* pixels;
-        int width, height;
-        gui.getTexDataAsRGBA32(&pixels, &width, &height);
-        auto textureId=renderer.CreateFonts(pixels, width, height);
-        gui.setTextureID(textureId);
-    }
 
     // guiの変数
     GuiData data;
     data.show_test_window=true;
     data.show_another_window=false;
     data.clear_color=[0.3f, 0.4f, 0.8f];
+
+	/+
+    // GUI renderer
+    auto scope guiRenderer=new glutil.RenderPass();
+	{
+	if(!guiRenderer.createShader!(shader.imgui))
+	{
+	return;
+	}
+	auto guiVertices=new scene.Vertices!(
+	vec2!float, "Position"
+	, vec2!float, "UV"
+	, vec4!float, "Color"
+	)(true);
+	guiRenderer.mesh2vertexArray(guiVertices);
+	}
+    //renderer.CreateDeviceObjects(gui.vertexSize, gui.uvOffset, gui.colorOffset);
+    // setup font
+    {
+	ubyte* pixels;
+	int width, height;
+	gui.getTexDataAsRGBA32(&pixels, &width, &height);
+
+	guiRenderer.m_texture=new glutil.Texture();
+	guiRenderer.m_texture.loadImageRGBA(width, height, pixels);
+	gui.setTextureID(cast(void*)guiRenderer.m_texture.m_texture);
+    }
+	+/
+
+    // opengl
+    auto scope renderer=new Renderer();
+    renderer.CreateDeviceObjects(gui.vertexSize, gui.uvOffset, gui.colorOffset);
+    // setup font
+	auto texture=new glutil.Texture();
+   
+
+    ubyte* pixels;
+    int width, height;
+    gui.getTexDataAsRGBA32(&pixels, &width, &height);
+    //auto textureId=renderer.CreateFonts(pixels, width, height);
+	texture.loadImageRGBA(pixels, width, height);
+    gui.setTextureID(cast(void*)texture.get());
+    
 
 	// main loop
 	auto clock=new FpsClock!30;
@@ -137,17 +167,13 @@ void main()
 		glfw.setMouseCursor(mouseContext.enableCursor);
 		build(data);
 
-		/*
-		auto size=glfw.getSize();
-		auto windowSize=glfw.getWindowSize();
-		auto pos=glfw.getCursorPos();
-		*/
 		rotator.update(delta);
 		renderPass.setFrameSize(windowContext.frame_w, windowContext.frame_h);
 		renderPass.m_program.setUniform("uRotationMatrix", mat4!float.identity);
 
 		// draw
-		renderPass.draw(vertexArray);
+		renderPass.clear();
+		renderPass.draw(vertices.vertexCount, null);
 		gui.renderDrawLists(renderer);
 
 		// present

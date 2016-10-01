@@ -1,7 +1,14 @@
 module shader.circle;
 
-auto vert="
-#version 400
+import std.typecons;
+import gfm.math;
+alias Vertex=Tuple!(
+vec3!float, "aPosition"
+, vec3!float, "aColor"
+, vec2!float, "aTexCoord0"
+);
+
+auto vert="#version 400
 
 layout(location=0) in vec3 aPosition;
 layout(location=1) in vec3 aColor;
@@ -18,9 +25,7 @@ void main()
 }
 ";
 
-
-auto frag="
-#version 400
+auto frag="#version 400
 
 in vec3 fColor;
 in vec2 fTexCoord;
