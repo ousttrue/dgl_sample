@@ -1,3 +1,4 @@
+import irenderer;
 import derelict.glfw3.glfw3;
 import std.experimental.logger;
 import std.stdio;
@@ -86,6 +87,19 @@ class GLFW
 	{
 		logf("%s, %s", xoffset, yoffset);
 	}
+
+    void updateContext(ref WindowContext w, ref MouseContext m)
+    {
+		glfwGetWindowSize(m_window, &w.window_w, &w.window_h);
+		glfwGetFramebufferSize(m_window, &w.frame_w, &w.frame_h);
+		w.hasFocus=glfwGetWindowAttrib(m_window, GLFW_FOCUSED)!=0;
+
+		glfwGetCursorPos(m_window, &m.x, &m.y);
+		for(int i=0; i<3; ++i)
+		{
+			m.pressed[i]=glfwGetMouseButton(m_window, i) != 0;
+		}
+    }
 
 	bool createWindow(int major, int minor)
 	{

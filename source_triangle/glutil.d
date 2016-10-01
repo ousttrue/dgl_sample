@@ -8,6 +8,7 @@ import std.algorithm;
 import std.array;
 import std.string;
 import core.stdc.string;
+import irenderer;
 
 
 int byteslen(T)(T[] array)
@@ -423,7 +424,43 @@ class VertexArray
 }
 
 
-class RenderPass
+class Texture
+{
+    GLuint m_texture;
+
+    this()
+    {
+        glGenTextures(1, &m_texture);
+    }
+
+    ~this()
+    {
+        glDeleteTextures(1, &m_texture);
+    }
+
+    void bind()
+    {
+        glBindTexture(GL_TEXTURE_2D, m_texture);
+    }
+
+    void unbind()
+    {
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    void loadImageRGBA(int width, int height, ubyte *pixels)
+    {
+        bind();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height
+					 , 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        unbind();
+    }
+}
+
+
+class RenderPass: IRenderer
 {
     ShaderProgram m_program;
     vec4!float m_clearColor;
@@ -497,5 +534,36 @@ class RenderPass
 		}
 
         return vertexArray;	
+    }
+
+	void CreateDeviceObjects(uint vertexSize, uint uvOffset, uint colorOffset)
+	{
+	}
+
+	void* CreateFonts(ubyte* pixels, int width, int height)
+	{
+		return null;
+	}
+
+    nothrow void begin(float width, float height)
+    {
+    }
+
+    nothrow void setVertices(void *vertices, int len)
+    {
+    }
+
+    nothrow void setIndices(void *indices, int len)
+    {
+    }
+
+    nothrow void draw(void* textureId
+					  , int x, int y, int w, int h
+						  , uint count, ushort* offset)
+    {
+    }
+
+    nothrow void end()
+    {
     }
 }

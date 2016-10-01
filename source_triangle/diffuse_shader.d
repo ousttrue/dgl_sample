@@ -39,4 +39,4 @@ void main()
 {
     FragColor = vec4(fLightIntensity, 1.0);
 }
-"
+";
