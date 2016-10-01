@@ -11,6 +11,11 @@ import core.stdc.string;
 import irenderer;
 
 
+static this()
+{
+	DerelictGL3.load();
+}
+
 int byteslen(T)(T[] array)
 {
     return T.sizeof * array.length;
@@ -26,11 +31,6 @@ class OpenGL
     GLint m_versionMinor;
 
     string[] m_extensions;
-
-    static this()
-    {
-        DerelictGL3.load();
-    }
 
     this()
     {
@@ -140,7 +140,7 @@ class ShaderProgram
     immutable GLuint m_program;
     Shader[] m_shaders;
 
-    ShaderVariable[string] Attribs;
+    ShaderVariable[string] Attributes;
     ShaderVariable[string] Uniforms;
 
     struct BlockVar
@@ -214,7 +214,7 @@ name: name,
       size: size,
       type: type
                 };
-                Attribs[name]=attrib;
+                Attributes[name]=attrib;
             }
         }
 
@@ -302,7 +302,7 @@ name: name,
     GLuint m_ubo;
 	int m_blockIndex;
 
-    void use()
+    nothrow void use()
     {
         glUseProgram(m_program);
 		glBindBufferBase(GL_UNIFORM_BUFFER, m_blockIndex, m_ubo);
@@ -444,7 +444,7 @@ class VertexArray
 
     void attribPointer(T, alias name)(ShaderProgram program, VertexBuffer buffer)
 	{
-		attribPointer(program.Attribs[name], buffer, T.sizeof, mixin("T."~name~".offsetof"));
+		attribPointer(program.Attributes[name], buffer, T.sizeof, mixin("T."~name~".offsetof"));
 	}
 
     void attribPointer(ShaderVariable attrib, VertexBuffer buffer, int stride, int offset=0)
@@ -598,7 +598,7 @@ class RenderPass: IRenderer
 
 		foreach(a; mesh.Vertex.fieldNames)
 		{
-			m_mesh.attribPointer(m_program.Attribs[a]
+			m_mesh.attribPointer(m_program.Attributes[a]
 				, buffer, mesh.vertexSize, mesh.offsetof!a);
 		}
 
