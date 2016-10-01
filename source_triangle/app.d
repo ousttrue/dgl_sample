@@ -6,8 +6,8 @@ import renderer;
 static import gui;
 static import glutil;
 static import scene;
-static import simple_shader;
-static import circle_shader;
+static import shader.simple;
+static import shader.circle;
 
 import std.typecons;
 
@@ -79,7 +79,7 @@ void main()
 
 	// renderpass
 	auto renderPass=new glutil.RenderPass();
-	if(!renderPass.createShader!(simple_shader)())
+	if(!renderPass.createShader!(shader.simple)())
 	{
 		return;
 	}

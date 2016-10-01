@@ -1,3 +1,5 @@
+module shader.simple;
+
 auto vert="
 #version 400
 

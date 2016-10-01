@@ -1,3 +1,5 @@
+module shader.circle;
+
 auto vert="
 #version 400
 
