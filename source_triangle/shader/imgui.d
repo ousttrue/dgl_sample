@@ -1,14 +1,15 @@
 module shader.imgui;
 
 
-import std.typecons;
-import gfm.math;
-alias Vertex=Tuple!(
-vec2!float, "Position"
-, vec2!float, "UV"
-, vec4!float, "Color"
-);
-
+import semantics;
+immutable Semantics[string] vertexAttributes;
+static this(){
+	vertexAttributes=[
+		"Position": Semantics.Position,
+		"UV": Semantics.TexCoord0,
+		"Color": Semantics.Color
+	];
+}
 
 auto vert ="#version 330
 uniform mat4 ProjMtx;
@@ -32,7 +33,7 @@ in vec4 Frag_Color;
 out vec4 Out_Color;
 void main()
 {
-	//Out_Color = vec4(1, 1, 1, 1);
 	Out_Color = Frag_Color * texture( Texture, Frag_UV.st);
+	//Out_Color = vec4(1, 1, 1, 1);
 };
 ";

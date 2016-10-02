@@ -2,11 +2,19 @@ import gfm.math;
 import std.typecons;
 import core.stdc.string;
 import std.traits;
+import semantics;
 
 
-class Vertices(T...)
+struct Vertex
 {
-	alias Vertex=Tuple!(T);
+	vec3!float Position;
+	vec3!float Color;
+	vec2!float TexCoord0;
+};
+
+
+class Vertices
+{
 	Vertex[] vertices;
 	bool m_useIndices;
 	ushort[] indices;
@@ -31,11 +39,6 @@ class Vertices(T...)
 		return vertices.ptr;
 	}
 
-	@property int offsetof(string attribute)()
-	{
-		return mixin("Vertex."~attribute~".offsetof");
-	}
-
 	this(bool useIndices=false)
 	{
 		m_useIndices=useIndices;
@@ -46,17 +49,17 @@ class Vertices(T...)
 		vertices.length=length;
 	}
 
-	void set(V...)(int index, V args)
+	void set(int index, Vertex v)
 	{
-		vertices[index]=tuple(args);
+		vertices[index]=v;
 	}
 
-	void push(V...)(Tuple!V v)
+	void push(Vertex v)
 	{
 		vertices~=v;
 	}
 
-	void store(V...)(Tuple!V[] vertices)
+	void store(Vertex[] vertices)
 	{
 		foreach(v; vertices)
 		{
@@ -64,14 +67,6 @@ class Vertices(T...)
 		}
 	}
 }
-
-
-alias Vertex = Tuple!(
-					  vec3!float, "aPosition"
-					  , vec3!float, "aColor"
-						  , vec2!float, "aTexCoord0"
-					  );
-
 
 static Vertex[] createTriangle(float size)
 {
@@ -95,45 +90,41 @@ static Vertex[] createTriangle(float size)
 }
 
 
-static auto createQuadrangle(float size)
+static Vertex[] createQuadrangle(float size)
 {
-	auto vs=new Vertices!(
-		vec3!float, "aPosition"
-		, vec3!float, "aColor"
-		, vec2!float, "aTexCoord0"
-		)(6);
-	vs.set(0, 
+	return [
+		Vertex(
             vec3!float(-size, -size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(0.0f, 0.0f)
-			);
-	vs.set(1,
+			),
+		Vertex(
 			vec3!float( size, -size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(1.0f, 0.0f)
-			);
-	vs.set(2,
+			),
+		Vertex(
             vec3!float( size,  size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(1.0f, 1.0f)
-			);
+			),
 
-	vs.set(3,
+		Vertex(
             vec3!float( size,  size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(1.0f, 1.0f)
-			);
-	vs.set(4,
+			),
+		Vertex(
 			vec3!float(-size,  size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(0.0f, 1.0f)
-			);
-	vs.set(5,
+			),
+		Vertex(
 			vec3!float(-size, -size, 0.0f),
             vec3!float(1.0f, 1.0f, 1.0f),
             vec2!float(0.0f, 0.0f)
-			);
-	return vs;
+			)
+	];
 }
 
 

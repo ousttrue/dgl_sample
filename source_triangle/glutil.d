@@ -1,3 +1,6 @@
+import irenderer;
+import semantics;
+
 import derelict.opengl3.gl3;
 import gfm.math;
 import scene;
@@ -7,8 +10,11 @@ import std.experimental.logger;
 import std.algorithm;
 import std.array;
 import std.string;
+import std.meta;
+import std.traits;
 import core.stdc.string;
-import irenderer;
+
+import derelict.imgui.imgui;
 
 
 static this()
@@ -19,6 +25,95 @@ static this()
 int byteslen(T)(T[] array)
 {
     return T.sizeof * array.length;
+}
+
+template Seq(uint length)
+{
+	template SeqRec(uint n)
+	{
+		static if(n==0)
+		{
+			// 再帰終わり
+			alias SeqRec = AliasSeq!();
+		}
+		else{
+			alias SeqRec = AliasSeq!(length-n
+									 , SeqRec!(n-1));
+		}
+	}
+	alias Seq = SeqRec!(length);
+}
+
+template Names(T)
+{
+	string[] Names={
+		string[] names;
+		foreach(name; FieldNameTuple!T)
+		{
+			names~=name;
+		}
+		return names;
+	}();
+}
+
+template Offsets(T)
+{
+	alias indices=Seq!(Fields!T.length);
+	int[] Offsets={
+		int [] offsets;
+		foreach(i; indices)
+		{
+			offsets~=T.tupleof[i].offsetof;
+		}
+		return offsets;
+	}();
+}
+
+template GlTypes(T)
+{
+	GLenum[] GlTypes={
+		GLenum[] types;
+		foreach(t; Fields!T)
+		{
+			static if(is(t==uint)){
+				types~=GL_UNSIGNED_BYTE;
+			}
+			else{
+				types~=GL_FLOAT;
+			}
+		}
+		return types;
+	}();
+}
+
+int GetIndex(T)(string name)
+{
+	static if(is(T==ImDrawVert)){
+		/// align(1) struct ImDrawVert
+		/// {
+		/// 	ImVec2  pos;
+		/// 	ImVec2  uv;
+		/// 	ImU32   col;
+		/// };
+		switch(name)
+		{
+			case "Position":
+				return 0;
+
+			case "TexCoord0":
+				return 1;
+
+			case "Color":
+				return 2;
+
+			default:
+				return -1;
+		}
+	}
+	else{
+		alias names=Names!(T);
+		return names.countUntil(name);
+	}
 }
 
 class OpenGL
@@ -100,6 +195,7 @@ struct ShaderVariable
     int location;
     int size;
     GLenum type;
+	Semantics semantic;
 
     @property int elementCount()
     {
@@ -153,7 +249,36 @@ class ShaderProgram
     }
     //Block[string] Blocks;
 
-    this()
+	static ShaderProgram createShader(alias m)()
+	{
+		return createShader(m.vert, m.frag, m.vertexAttributes);
+	}
+
+    static ShaderProgram createShader(string vert, string frag
+									  , const Semantics[string] attributeMap)
+    {
+        auto vertShader=new Shader(GL_VERTEX_SHADER);
+        if(!vertShader.compile(vert))
+        {
+            return null;
+        }
+        auto fragShader=new Shader(GL_FRAGMENT_SHADER);
+        if(!fragShader.compile(frag))
+        {
+            return null;
+        }
+
+        auto program=new ShaderProgram();
+        program.attach(vertShader);
+        program.attach(fragShader);
+        if(!program.link(attributeMap)){
+            return null;
+        }
+
+        return program;
+    }
+
+    private this()
     {
         m_program=glCreateProgram();
         enforce(m_program!=0, "fail to glCreateProgram");
@@ -170,7 +295,7 @@ class ShaderProgram
         m_shaders~=shader;
     }
 
-    bool link()
+    bool link(const Semantics[string] attributeMap)
     {
         glLinkProgram(m_program);
 
@@ -212,7 +337,9 @@ class ShaderProgram
 name: name,
       location: location,
       size: size,
-      type: type
+      type: type,
+semantic: attributeMap[name]
+
                 };
                 Attributes[name]=attrib;
             }
@@ -302,6 +429,52 @@ name: name,
     GLuint m_ubo;
 	int m_blockIndex;
 
+	template ToGlType(alias T)
+	{
+		static if(is(T==vec3!float)){
+			alias ToGlType=GL_FLOAT;
+		}
+		else{
+			alias ToGlType=T;
+		}
+	}
+
+    VertexArray mesh2vertexArray(T)(T mesh[], ushort[] indices=[])
+    {
+        auto buffer=new VertexBuffer();
+		if(mesh.length>0){
+			buffer.store(mesh.ptr, mesh.byteslen);
+		}
+
+        auto vertexArray=new VertexArray;
+		vertexArray.m_buffers~=buffer;
+
+		vertexArray.bind();
+
+		alias offsets=Offsets!(T);
+		alias types=GlTypes!(T);
+		foreach(a; Attributes)
+		{
+			string name=a.semantic.to!string;
+			int index=GetIndex!T(name);
+			if(index==-1){
+				throw new Exception("unknown semantics: "~name);
+			}
+			else{
+				vertexArray.attribPointer(a, buffer
+										  , types[index]
+										  , T.sizeof, offsets[index]);
+			}
+		}
+
+		vertexArray.unbind();
+
+		vertexArray.m_indices=new IndexBuffer();
+		vertexArray.m_indices.store(indices.ptr, indices.byteslen);
+
+		return vertexArray;
+    }
+
     nothrow void use()
     {
         glUseProgram(m_program);
@@ -346,17 +519,17 @@ class VertexBuffer
         glDeleteBuffers(1, &m_vbo);
     }
 
-    void bind()
+    nothrow void bind()
     {
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     }
 
-    void unbind()
+    nothrow void unbind()
     {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    void store(void* data, int len)
+    nothrow void store(void* data, int len)
     {
         bind();
         glBufferData(GL_ARRAY_BUFFER
@@ -383,17 +556,17 @@ class IndexBuffer
         glDeleteBuffers(1, &m_ibo);
 	}
 
-	void bind()
+	nothrow void bind()
 	{
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
 	}
 
-	void unbind()
+	nothrow void unbind()
 	{
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
-    void store(void* data, int len)
+    nothrow void store(void* data, int len)
     {
         bind();
         glBufferData(GL_ELEMENT_ARRAY_BUFFER
@@ -407,7 +580,7 @@ class VertexArray
 {
     GLuint m_vao;
     VertexBuffer[] m_buffers;
-
+	GLuint[] m_locations;
 	IndexBuffer m_indices;
 
     this(IndexBuffer indices=null)
@@ -422,19 +595,23 @@ class VertexArray
         glDeleteVertexArrays(1, &m_vao);
     }
 
-    void bind()
+    nothrow void bind()
     {
         glBindVertexArray(m_vao);
 		foreach(b; m_buffers)
 		{
 			b.bind();
 		}
-		if(m_indices)m_indices.bind();
+		if(m_indices){
+			m_indices.bind();
+		}
     }
 
-    void unbind()
+    nothrow void unbind()
     {
-		if(m_indices)m_indices.unbind();
+		if(m_indices){
+			m_indices.unbind();
+		}
 		foreach(b; m_buffers)
 		{
 			b.unbind();
@@ -442,48 +619,46 @@ class VertexArray
         glBindVertexArray(0);
     }
 
-    void attribPointer(T, alias name)(ShaderProgram program, VertexBuffer buffer)
+	/*
+    void attribPointer(T, alias name)(ShaderProgram program, VertexBuffer buffer, GLenum inputElementType)
 	{
-		attribPointer(program.Attributes[name], buffer, T.sizeof, mixin("T."~name~".offsetof"));
+		attribPointer(program.Attributes[name], buffer, inputElementType, T.sizeof, mixin("T."~name~".offsetof"));
 	}
+	*/
 
-    void attribPointer(ShaderVariable attrib, VertexBuffer buffer, int stride, int offset=0)
+    void attribPointer(ShaderVariable attrib, VertexBuffer buffer
+					   , GLenum inputElementType
+					   , int stride, int offset=0)
     {
-        bind();
-        buffer.bind();
+		//assert(attrib.elementCount==inputElementCount);
+		//glBindVertexArray(m_vao);
+        //buffer.bind();
         glVertexAttribPointer(attrib.location
-                , attrib.elementCount, attrib.elementType
-                , GL_FALSE, stride, cast(void*)offset);
-        buffer.unbind();
-        unbind();
+                , attrib.elementCount, inputElementType
+                , inputElementType==GL_FLOAT ? GL_FALSE : GL_TRUE, stride, cast(void*)offset);
+        //buffer.unbind();
+        //glBindVertexArray(0);
 
-        m_buffers~=buffer;
+		m_locations~=attrib.location;
     }
 
     void draw(int count, ushort* offset)
     {
-		/*
-        glEnable(GL_BLEND);
-        glBlendEquation(GL_FUNC_ADD);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDisable(GL_CULL_FACE);
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_SCISSOR_TEST);
-		*/
-
-        for(int i=0; i<m_buffers.length; ++i)glEnableVertexAttribArray(i);
+        foreach(l; m_locations){
+			glEnableVertexAttribArray(l);
+		}
 
 		if(m_indices){
 			glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT
 						   , offset);
 		}
 		else{
-			bind();
 			glDrawArrays(GL_TRIANGLES, cast(int)offset, count);
-			unbind();
 		}
 
-        for(int i=0; i<m_buffers.length; ++i)glDisableVertexAttribArray(i);
+        foreach(l; m_locations){
+			glDisableVertexAttribArray(l);
+		}
     }
 }
 
@@ -536,34 +711,6 @@ class RenderPass: IRenderer
 	VertexArray m_mesh;
 	Texture m_texture;
 
-	bool createShader(alias m)()
-	{
-		return createShader(m.vert, m.frag);
-	}
-
-    bool createShader(string vert, string frag)
-    {
-        auto vertShader=new Shader(GL_VERTEX_SHADER);
-        if(!vertShader.compile(vert))
-        {
-            return false;
-        }
-        auto fragShader=new Shader(GL_FRAGMENT_SHADER);
-        if(!fragShader.compile(frag))
-        {
-            return false;
-        }
-
-        m_program=new ShaderProgram();
-        m_program.attach(vertShader);
-        m_program.attach(fragShader);
-        if(!m_program.link()){
-            return false;
-        }
-
-        return true;
-    }
-
     void setClearColor(float r, float g, float b, float a)
     {
         m_clearColor.x=r;
@@ -586,28 +733,6 @@ class RenderPass: IRenderer
         glClearColor(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
         glClear(GL_COLOR_BUFFER_BIT);
 	}
-
-    void mesh2vertexArray(T...)(Vertices!T mesh, ushort[] indices=[])
-    {
-        m_mesh=new VertexArray;
-
-        auto buffer=new VertexBuffer();
-		if(mesh.bytesLength>0){
-			buffer.store(mesh.ptr, mesh.bytesLength);
-		}
-
-		foreach(a; mesh.Vertex.fieldNames)
-		{
-			m_mesh.attribPointer(m_program.Attributes[a]
-				, buffer, mesh.vertexSize, mesh.offsetof!a);
-		}
-
-		if(mesh.m_useIndices || indices.length>0)
-		{
-			m_mesh.m_indices=new IndexBuffer();
-			m_mesh.m_indices.store(indices.ptr, indices.byteslen);
-		}
-    }
 
 	GLint m_last_program;
 	GLint m_last_texture;
@@ -674,7 +799,6 @@ class RenderPass: IRenderer
 
 	nothrow void end()
 	{
-		try{
 		// Restore modified state
 		glBindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -682,7 +806,5 @@ class RenderPass: IRenderer
 		glUseProgram(m_last_program);
 		glDisable(GL_SCISSOR_TEST);
 		glBindTexture(GL_TEXTURE_2D, m_last_texture);
-		}
-		catch{}
 	}
 }

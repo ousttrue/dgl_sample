@@ -1,12 +1,15 @@
 module shader.simple;
-import std.typecons;
-import gfm.math;
-alias Vertex=Tuple!(
-vec3!float, "aPosition"
-, vec3!float, "aColor"
-, vec2!float, "aTexCoord0"
-);
 
+
+import semantics;
+immutable Semantics[string] vertexAttributes;
+static this(){
+	vertexAttributes=[
+		"aPosition": Semantics.Position,
+		"aColor": Semantics.Color,
+		"aTexCoord0": Semantics.TexCoord0,
+	];
+}
 
 auto vert="#version 400
 

@@ -1,67 +1,43 @@
 import derelict.opengl3.gl3;
-public import irenderer;
+import gfm.math;
 import glutil;
 static import shader.imgui;
+static import scene;
+public import irenderer;
 
 
 class Renderer: IRenderer
 {
 	ShaderProgram m_program;
-
+	//VertexArray m_mesh;
 	uint         g_VboHandle, g_VaoHandle, g_ElementsHandle;
-
-	uint m_vertexSize;
 	GLint last_program, last_texture;
-
-	~this()
-	{
-		if (g_VaoHandle) glDeleteVertexArrays(1, &g_VaoHandle);
-		if (g_VboHandle) glDeleteBuffers(1, &g_VboHandle);
-		if (g_ElementsHandle) glDeleteBuffers(1, &g_ElementsHandle);
-		g_VaoHandle = 0;
-		g_VboHandle = 0;
-		g_ElementsHandle = 0;
-	}
 
 	bool CreateDeviceObjects(uint vertexSize, uint uvOffset, uint colorOffset)
 	{
-		m_vertexSize=vertexSize;
+        m_program=ShaderProgram.createShader!(shader.imgui);
+		if(!m_program){
+			return false;
+		}
 
-		m_program=new ShaderProgram();
-        auto vertShader=new Shader(GL_VERTEX_SHADER);
-        if(!vertShader.compile(shader.imgui.vert))
-        {
-            return false;
-        }
-        auto fragShader=new Shader(GL_FRAGMENT_SHADER);
-        if(!fragShader.compile(shader.imgui.frag))
-        {
-            return false;
-        }
-
-        m_program=new ShaderProgram();
-        m_program.attach(vertShader);
-        m_program.attach(fragShader);
-        if(!m_program.link()){
-            return false;
-        }
+		import derelict.imgui.imgui: ImDrawVert;
+		//m_mesh=m_program.mesh2vertexArray!ImDrawVert([]);
 
 		glGenBuffers(1, &g_VboHandle);
 		glGenBuffers(1, &g_ElementsHandle);
-
 		glGenVertexArrays(1, &g_VaoHandle);
-		glBindVertexArray(g_VaoHandle);
-		glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
-		glEnableVertexAttribArray(m_program.Attributes["Position"].location);
-		glEnableVertexAttribArray(m_program.Attributes["UV"].location);
-		glEnableVertexAttribArray(m_program.Attributes["Color"].location);
 
-		glVertexAttribPointer(m_program.Attributes["Position"].location, 2, GL_FLOAT, GL_FALSE, vertexSize, cast(void*)0);
-		glVertexAttribPointer(m_program.Attributes["UV"].location, 2, GL_FLOAT, GL_FALSE, vertexSize, cast(void*)uvOffset);
-		glVertexAttribPointer(m_program.Attributes["Color"].location, 4, GL_UNSIGNED_BYTE, GL_TRUE, vertexSize, cast(void*)colorOffset);
+		{
+			glBindVertexArray(g_VaoHandle);
+			glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
 
-		glBindVertexArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glVertexAttribPointer(m_program.Attributes["Position"].location, 2, GL_FLOAT, GL_FALSE, vertexSize, cast(void*)0);
+			glVertexAttribPointer(m_program.Attributes["UV"].location, 2, GL_FLOAT, GL_FALSE, vertexSize, cast(void*)uvOffset);
+			glVertexAttribPointer(m_program.Attributes["Color"].location, 4, GL_UNSIGNED_BYTE, GL_TRUE, vertexSize, cast(void*)colorOffset);
+
+			glBindVertexArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+		}
 
 		return true;
 	}
@@ -90,13 +66,20 @@ class Renderer: IRenderer
 		m_program.use();
 		try{
 		glUniform1i(m_program.Uniforms["Texture"].location, 0);
+		}
+		catch{}
+		try{
 		glUniformMatrix4fv(m_program.Uniforms["ProjMtx"].location, 1, GL_FALSE, &ortho_projection[0][0]);
 		}
 		catch{}
+		//m_mesh.bind();
 
 		glBindVertexArray(g_VaoHandle);
 		glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_ElementsHandle);
+		glEnableVertexAttribArray(m_program.Attributes["Position"].location);
+		glEnableVertexAttribArray(m_program.Attributes["UV"].location);
+		glEnableVertexAttribArray(m_program.Attributes["Color"].location);
 	}
 
 	nothrow void setVertices(void *vertices, int len)

@@ -1,10 +1,14 @@
-import std.typecons;
-import gfm.math;
-alias Vertex=Tuple!(
-vec3!float, "aPosition"
-, vec3!float, "aColor"
-, vec2!float, "aTexCoord0"
-);
+module shader.diffuse;
+
+
+import semantics;
+immutable Semantics[string] vertexAttributes;
+static this(){
+	vertexAttributes=[
+		"aPosition": Semantics.Position,
+		"aNormal": Semantics.Normal,
+	];
+}
 
 auto vert="#version 400
 

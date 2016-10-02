@@ -79,20 +79,18 @@ void main()
 	auto gl=new glutil.OpenGL();
 
 	// 3D renderer
-	auto renderPass=new glutil.RenderPass();
-	if(!renderPass.createShader!(shader.simple))
-	{
+	auto program=glutil.ShaderProgram.createShader!(shader.simple)();
+	if(!program){
 		return;
 	}
+	auto renderPass=new glutil.RenderPass();
+	renderPass.m_program=program;
 	renderPass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	auto vertices=new scene.Vertices!(
-		vec3!float, "aPosition"
-		, vec3!float, "aColor"
-		, vec2!float, "aTexCoord0"
-		)();
-	vertices.store(scene.createTriangle(0.5f));
+	//auto vertices=new scene.Vertices();
+	//vertices.store(scene.createTriangle(0.5f));
+	auto vertices=scene.createTriangle(0.5f);
 	ushort[] indices=[0, 1, 2];
-	renderPass.mesh2vertexArray(vertices, indices);
+	renderPass.m_mesh=renderPass.m_program.mesh2vertexArray(vertices, indices);
 
 	// gui
 	WindowContext windowContext;
@@ -173,7 +171,7 @@ void main()
 
 		// draw
 		renderPass.clear();
-		renderPass.draw(vertices.vertexCount, null);
+		renderPass.draw(vertices.length, null);
 		gui.renderDrawLists(renderer);
 
 		// present
