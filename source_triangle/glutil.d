@@ -460,11 +460,10 @@ semantic: attributeMap[name]
 			if(index==-1){
 				throw new Exception("unknown semantics: "~name);
 			}
-			else{
-				vertexArray.attribPointer(a, buffer
-										  , types[index]
-										  , T.sizeof, offsets[index]);
-			}
+
+			vertexArray.attribPointer(a
+										, types[index]
+										, T.sizeof, offsets[index]);
 		}
 
 		vertexArray.unbind();
@@ -605,10 +604,17 @@ class VertexArray
 		if(m_indices){
 			m_indices.bind();
 		}
+		foreach(l; m_locations)
+		{
+			glEnableVertexAttribArray(l);
+		}
     }
 
     nothrow void unbind()
     {
+        foreach(l; m_locations){
+			glDisableVertexAttribArray(l);
+		}
 		if(m_indices){
 			m_indices.unbind();
 		}
@@ -619,34 +625,18 @@ class VertexArray
         glBindVertexArray(0);
     }
 
-	/*
-    void attribPointer(T, alias name)(ShaderProgram program, VertexBuffer buffer, GLenum inputElementType)
-	{
-		attribPointer(program.Attributes[name], buffer, inputElementType, T.sizeof, mixin("T."~name~".offsetof"));
-	}
-	*/
-
-    void attribPointer(ShaderVariable attrib, VertexBuffer buffer
+    void attribPointer(ShaderVariable attrib
 					   , GLenum inputElementType
 					   , int stride, int offset=0)
     {
-		//assert(attrib.elementCount==inputElementCount);
-		//glBindVertexArray(m_vao);
-        //buffer.bind();
         glVertexAttribPointer(attrib.location
                 , attrib.elementCount, inputElementType
                 , inputElementType==GL_FLOAT ? GL_FALSE : GL_TRUE, stride, cast(void*)offset);
-        //buffer.unbind();
-        //glBindVertexArray(0);
-
 		m_locations~=attrib.location;
     }
 
     void draw(int count, ushort* offset)
     {
-        foreach(l; m_locations){
-			glEnableVertexAttribArray(l);
-		}
 
 		if(m_indices){
 			glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_SHORT
@@ -654,10 +644,6 @@ class VertexArray
 		}
 		else{
 			glDrawArrays(GL_TRIANGLES, cast(int)offset, count);
-		}
-
-        foreach(l; m_locations){
-			glDisableVertexAttribArray(l);
 		}
     }
 }
