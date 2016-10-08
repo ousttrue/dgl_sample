@@ -28,9 +28,6 @@ includedirs {
     "DerelictImgui/cimgui/cimgui",
 }
 defines {
-    "WIN32",
-    "_WINDOWS",
-    "_USRDLL",
     "CIMGUI_EXPORTS",
 }
 buildoptions { }

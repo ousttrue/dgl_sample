@@ -1,5 +1,6 @@
 import irenderer;
 import derelict.glfw3.glfw3;
+import derelict.util.exception;
 import std.experimental.logger;
 import std.stdio;
 import std.conv;
@@ -60,7 +61,13 @@ class GLFW
 
 	static this()
 	{
-		DerelictGLFW3.load();
+		DerelictGLFW3.missingSymbolCallback = name => ShouldThrow.No;
+		try{
+			DerelictGLFW3.load();
+		}
+		catch( SharedLibLoadException slle ) {
+			DerelictGLFW3.load("_build_premake/linux64_Debug/libglfw3.so");
+		}
 	}
 
 	this()

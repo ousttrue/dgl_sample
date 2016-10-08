@@ -22,7 +22,7 @@ static this()
 	DerelictGL3.load();
 }
 
-int byteslen(T)(T[] array)
+auto byteslen(T)(T[] array)
 {
     return T.sizeof * array.length;
 }
@@ -86,7 +86,7 @@ template GlTypes(T)
 	}();
 }
 
-int GetIndex(T)(string name)
+long GetIndex(T)(string name)
 {
 	static if(is(T==ImDrawVert)){
 		/// align(1) struct ImDrawVert
@@ -439,11 +439,11 @@ semantic: attributeMap[name]
 		}
 	}
 
-    VertexArray mesh2vertexArray(T)(T mesh[], ushort[] indices=[])
+    VertexArray mesh2vertexArray(T)(T[] mesh, ushort[] indices=[])
     {
         auto buffer=new VertexBuffer();
 		if(mesh.length>0){
-			buffer.store(mesh.ptr, mesh.byteslen);
+			buffer.store(mesh.ptr, cast(int)mesh.byteslen);
 		}
 
         auto vertexArray=new VertexArray;
@@ -456,7 +456,7 @@ semantic: attributeMap[name]
 		foreach(a; Attributes)
 		{
 			string name=a.semantic.to!string;
-			int index=GetIndex!T(name);
+			auto index=cast(int)GetIndex!T(name);
 			if(index==-1){
 				throw new Exception("unknown semantics: "~name);
 			}
@@ -469,7 +469,7 @@ semantic: attributeMap[name]
 		vertexArray.unbind();
 
 		vertexArray.m_indices=new IndexBuffer();
-		vertexArray.m_indices.store(indices.ptr, indices.byteslen);
+		vertexArray.m_indices.store(indices.ptr, cast(int)indices.byteslen);
 
 		return vertexArray;
     }

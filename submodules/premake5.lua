@@ -4,10 +4,9 @@ local build_dir="../_build_premake"
 location(build_dir)
 
 solution "SubModules"
-do
-    configurations { "Debug", "Release" }
-    platforms { "Win32" }
-end
+configurations { "Debug", "Release" }
+platforms { "x32", "x64" }
+
 
 filter "configurations:Debug"
 do
@@ -21,12 +20,32 @@ do
     optimize "On"
 end
 
-filter { "platforms:Win32" }
-   architecture "x86"
-filter {"platforms:Win32", "configurations:Debug" }
-    targetdir(build_dir.."/Win32_Debug")
-filter {"platforms:Win32", "configurations:Release" }
-    targetdir(build_dir.."/Win32_Release")
+filter { "platforms:x32" }
+   architecture "x32"
+
+filter { "system:windows", "platforms:x32", "configurations:Debug" }
+    targetdir(build_dir.."/msvc32_Debug")
+filter { "system:windows", "platforms:x32", "configurations:Release" }
+    targetdir(build_dir.."/msvc32_Release")
+
+filter { "system:linux", "platforms:x32", "configurations:Debug" }
+    targetdir(build_dir.."/linux32_Debug")
+filter { "system:linux", "platforms:x32", "configurations:Release" }
+    targetdir(build_dir.."/linux32_Release")
+
+
+filter { "platforms:x64" }
+   architecture "x64"
+
+filter { "system:windows", "platforms:x64", "configurations:Debug" }
+    targetdir(build_dir.."/msvc64_Debug")
+filter { "system:windows", "platforms:x64", "configurations:Release" }
+    targetdir(build_dir.."/msvc64_Release")
+
+filter { "system:linux", "platforms:x64", "configurations:Debug" }
+    targetdir(build_dir.."/linux64_Debug")
+filter { "system:linux", "platforms:x64", "configurations:Release" }
+    targetdir(build_dir.."/linux64_Release")
 
 filter { "action:vs*" }
     buildoptions {
@@ -34,6 +53,9 @@ filter { "action:vs*" }
     }
     defines {
         "_CRT_SECURE_NO_DEPRECATE",
+        "WIN32",
+        "_WINDOWS",
+        "_USRDLL",
     }
     characterset ("MBCS")
 

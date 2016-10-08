@@ -1,5 +1,5 @@
 module main;
-
+import derelict.util.exception;
 import glfw;
 import derelict.imgui.imgui;
 //import imgui;
@@ -16,11 +16,10 @@ void RenderDrawLists(ImGuiIO *io, IRenderer renderer)
         ImDrawList* cmd_list = data.CmdLists[n];
 
         auto countVertices = ImDrawList_GetVertexBufferSize(cmd_list);
-		renderer.setVertices(ImDrawList_GetVertexPtr(cmd_list,0), countVertices * ImDrawVert.sizeof);
+		renderer.setVertices(ImDrawList_GetVertexPtr(cmd_list,0)
+                , cast(int)(countVertices * ImDrawVert.sizeof));
 
         auto countIndices = ImDrawList_GetIndexBufferSize(cmd_list);
-		renderer.setIndices(ImDrawList_GetIndexPtr(cmd_list,0), countIndices * ImDrawIdx.sizeof);
-
         ImDrawIdx* idx_buffer_offset;
         auto cmdCnt = ImDrawList_GetCmdSize(cmd_list);       
         foreach(i; 0..cmdCnt)
@@ -168,7 +167,13 @@ void main()
 	renderer.CreateDeviceObjects(ImDrawVert.sizeof, ImDrawVert.uv.offsetof, ImDrawVert.col.offsetof);
 
 	// gui
-	DerelictImgui.load();
+	try{
+		DerelictImgui.load();
+	}
+	catch( SharedLibLoadException slle ) {
+		DerelictImgui.load("_build_premake/linux64_Debug/libcimgui.so");
+	}
+
 	auto io = igGetIO();
 	GuiContext context={
 		m_time: 0.0f,
@@ -182,6 +187,7 @@ void main()
 	// setup font
 	ubyte* pixels;
 	int width, height;
+	io.Fonts.ImFontAtlas_AddFontDefault(null);
 	ImFontAtlas_GetTexDataAsRGBA32(io.Fonts,&pixels,&width,&height,null);
 	ImFontAtlas_SetTexID(io.Fonts
 						 , renderer.CreateFonts(pixels, width, height));

@@ -19,7 +19,7 @@ location(build_dir)
 workspace '$[workspace_name]'
 do
     configurations { 'Debug', 'Release' }
-    platforms { 'Win32', 'Win64' }
+    platforms { 'x32', 'x64' }
 end
 
 filter 'configurations:Debug'
@@ -34,19 +34,19 @@ do
     optimize 'On'
 end
 
-filter { 'platforms:Win32' }
+filter { 'platforms:x32' }
    architecture 'x32'
-filter {'platforms:Win32', 'configurations:Debug' }
-    targetdir(build_dir..'/Win32_Debug')
-filter {'platforms:Win32', 'configurations:Release' }
-    targetdir(build_dir..'/Win32_Release')
+filter {'platforms:x32', 'configurations:Debug' }
+    targetdir(build_dir..'/msvc32_Debug')
+filter {'platforms:x32', 'configurations:Release' }
+    targetdir(build_dir..'/msvc32_Release')
 
-filter { 'platforms:Win64' }
+filter { 'platforms:x64' }
    architecture 'x64'
-filter {'platforms:Win64', 'configurations:Debug' }
-    targetdir(build_dir..'/Win64_Debug')
-filter {'platforms:Win64', 'configurations:Release' }
-    targetdir(build_dir..'/Win64_Release')
+filter {'platforms:x64', 'configurations:Debug' }
+    targetdir(build_dir..'/msvc64_Debug')
+filter {'platforms:x64', 'configurations:Release' }
+    targetdir(build_dir..'/msvc64_Release')
 
 filter {}
 

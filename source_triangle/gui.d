@@ -1,12 +1,20 @@
 ﻿import irenderer;
 import derelict.imgui.imgui;
+import derelict.util.exception;
 
 
 ImGuiIO *io;
 static this()
 {
-    DerelictImgui.load();
+    DerelictImgui.missingSymbolCallback = name => ShouldThrow.No;
+    try{
+        DerelictImgui.load();
+    }
+    catch( SharedLibLoadException slle ) {
+        DerelictImgui.load("_build_premake/linux64_Debug/libcimgui.so");
+    }
     io=igGetIO();
+	io.Fonts.ImFontAtlas_AddFontDefault(null);
 }
 
 int vertexSize()
@@ -91,10 +99,10 @@ void renderDrawLists(IRenderer renderer)
         ImDrawList* cmd_list = data.CmdLists[n];
 
         auto countVertices = ImDrawList_GetVertexBufferSize(cmd_list);
-        renderer.setVertices(ImDrawList_GetVertexPtr(cmd_list,0), countVertices * ImDrawVert.sizeof);
+        renderer.setVertices(ImDrawList_GetVertexPtr(cmd_list,0), cast(int)(countVertices * ImDrawVert.sizeof));
 
         auto countIndices = ImDrawList_GetIndexBufferSize(cmd_list);
-        renderer.setIndices(ImDrawList_GetIndexPtr(cmd_list,0), countIndices * ImDrawIdx.sizeof);
+        renderer.setIndices(ImDrawList_GetIndexPtr(cmd_list,0), cast(int)(countIndices * ImDrawIdx.sizeof));
 
         ImDrawIdx* idx_buffer_offset;
         auto cmdCnt = ImDrawList_GetCmdSize(cmd_list); 

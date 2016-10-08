@@ -1,4 +1,6 @@
+import derelict.util.exception;
 import derelict.glfw3.glfw3;
+import std.stdio;
 
 
 extern(C) nothrow void error_callback(int error, const(char)* description)
@@ -7,6 +9,18 @@ extern(C) nothrow void error_callback(int error, const(char)* description)
     import std.conv;
 	try writefln("glfw err: %s ('%s')",error, to!string(description));
 	catch{}
+}
+
+
+ShouldThrow missingSymFunc( string symName )
+{
+    if( symName == "glfwSetWindowIcon") {
+        return ShouldThrow.No;
+    }
+
+    writeln("no such symbol: ", symName);
+    return ShouldThrow.No;
+    //return ShouldThrow.Yes;
 }
 
 
@@ -20,7 +34,13 @@ class GLFW
 
 	static this()
 	{
-		DerelictGLFW3.load();
+		DerelictGLFW3.missingSymbolCallback = &missingSymFunc;
+		try{
+			DerelictGLFW3.load();
+		}
+		catch( SharedLibLoadException slle ) {
+			DerelictGLFW3.load("_build_premake/linux64_Debug/libglfw3.so");
+		}
 	}
 
 	~this()

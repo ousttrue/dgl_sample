@@ -71,9 +71,15 @@ void main()
 {
     // window
     auto glfw=new GLFW();
+    /*
     if(!glfw.createWindow(4, 5)){
         return;
     }
+    */
+    if(!glfw.createWindow(3, 3)){
+        return;
+    }
+
 
 	// gl
 	auto gl=new glutil.OpenGL();
@@ -171,7 +177,7 @@ void main()
 
 		// draw
 		renderPass.clear();
-		renderPass.draw(vertices.length, null);
+		renderPass.draw(cast(int)vertices.length, null);
 		gui.renderDrawLists(renderer);
 
 		// present

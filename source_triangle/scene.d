@@ -24,12 +24,12 @@ class Vertices
 		return Vertex.sizeof;
 	}
 
-	@property int vertexCount()
+	@property auto vertexCount()
 	{
 		return vertices.length;
 	}
 
-	@property int bytesLength()
+	@property auto bytesLength()
 	{
 		return Vertex.sizeof * vertices.length;
 	}
