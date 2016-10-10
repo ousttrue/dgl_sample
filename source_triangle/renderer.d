@@ -4,10 +4,10 @@ import glutil;
 import std.conv;
 static import shader.imgui;
 static import scene;
-public import irenderer;
+static import gui;
 
 
-class Renderer: IRenderer
+class Renderer: gui.IRenderer
 {
 	ShaderProgram m_program;
 	VertexArray m_mesh;

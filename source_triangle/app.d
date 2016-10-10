@@ -1,6 +1,5 @@
 import glfw;
 import gfm.math;
-import irenderer;
 import renderer;
 import fpsclock;
 static import gui;
@@ -95,8 +94,8 @@ void main()
 	auto mesh=program.mesh2vertexArray(vertices, indices);
 
 	// gui
-	WindowContext windowContext;
-	MouseContext mouseContext;
+	gui.WindowContext windowContext;
+	gui.MouseContext mouseContext;
 
     // guiの変数
     GuiData data;

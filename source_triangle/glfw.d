@@ -1,4 +1,4 @@
-import irenderer;
+static import gui;
 import derelict.glfw3.glfw3;
 import derelict.util.exception;
 import std.experimental.logger;
@@ -95,7 +95,7 @@ class GLFW
 		logf("%s, %s", xoffset, yoffset);
 	}
 
-    void updateContext(ref WindowContext w, ref MouseContext m)
+    void updateContext(ref gui.WindowContext w, ref gui.MouseContext m)
     {
 		glfwGetWindowSize(m_window, &w.window_w, &w.window_h);
 		glfwGetFramebufferSize(m_window, &w.frame_w, &w.frame_h);
