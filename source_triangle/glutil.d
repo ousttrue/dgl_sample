@@ -689,108 +689,14 @@ class Texture
 }
 
 
-class RenderPass: IRenderer
+void clear(float r, float g, float b, float a)
 {
-    ShaderProgram m_program;
-    vec4!float m_clearColor;
-    vec2!int m_frameSize;
-	VertexArray m_mesh;
-	Texture m_texture;
+	glClearColor(r, g, b, a);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
 
-    void setClearColor(float r, float g, float b, float a)
-    {
-        m_clearColor.x=r;
-        m_clearColor.y=g;
-        m_clearColor.z=b;
-        m_clearColor.w=a;
-    }
-
-    void setFrameSize(int w, int h)
-    {
-        m_frameSize.x=w;
-        m_frameSize.y=h;
-    }
-
-	void clear()
-	{
-        glViewport(0, 0, m_frameSize.x, m_frameSize.y);
-
-        // clear
-        glClearColor(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
-        glClear(GL_COLOR_BUFFER_BIT);
-	}
-
-	GLint m_last_program;
-	GLint m_last_texture;
-	nothrow void begin(float width, float height)
-	{
-		try{
-		// Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled
-		glGetIntegerv(GL_CURRENT_PROGRAM, &m_last_program);
-		glGetIntegerv(GL_TEXTURE_BINDING_2D, &m_last_texture);
-		glEnable(GL_BLEND);
-		glBlendEquation(GL_FUNC_ADD);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glDisable(GL_CULL_FACE);
-		glDisable(GL_DEPTH_TEST);
-		glEnable(GL_SCISSOR_TEST);
-		glActiveTexture(GL_TEXTURE0);
-
-		const float[4][4] ortho_projection =
-		[
-			[ 2.0f/width,	0.0f,			0.0f,		0.0f ],
-			[ 0.0f,			2.0f/-height,	0.0f,		0.0f ],
-			[ 0.0f,			0.0f,			-1.0f,		0.0f ],
-			[ -1.0f,		1.0f,			0.0f,		1.0f ],
-		];
-
-		m_program.use();
-		m_program.setUniform("ProjMtx", ortho_projection);
-
-		m_mesh.bind();
-		}
-		catch{}
-	}
-
-	nothrow void setVertices(void *vertices, int len)
-	{
-        glBufferData(GL_ARRAY_BUFFER, len, cast(GLvoid*)vertices, GL_STREAM_DRAW);
-	}
-
-	nothrow void setIndices(void *indices, int len)
-	{
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, len, indices, GL_STREAM_DRAW);
-	}
-
-	void draw(uint count, ushort *offset)
-	{
-		m_program.use();
-		m_mesh.bind();
-		draw(null, 0, 0, m_frameSize.x, m_frameSize.y, count, offset);
-	}
-
-	nothrow void draw(void* textureId
-					  , int x, int y, int w, int h
-					  , uint count, ushort* offset)
-	{
-		try{
-
-
-		glScissor(x, y, w, h);
-		if(m_texture)m_texture.bind();
-		if(m_mesh)m_mesh.draw(count, offset);
-		}
-		catch{}
-	}
-
-	nothrow void end()
-	{
-		// Restore modified state
-		glBindVertexArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		glUseProgram(m_last_program);
-		glDisable(GL_SCISSOR_TEST);
-		glBindTexture(GL_TEXTURE_2D, m_last_texture);
-	}
+void setViewport(int x, int y, int w, int h)
+{
+	glViewport(x, y, w, h);
+	glScissor(x, y, w, h);
 }

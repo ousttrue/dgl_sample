@@ -71,15 +71,16 @@ void main()
 {
     // window
     auto glfw=new GLFW();
-    /*
-    if(!glfw.createWindow(4, 5)){
-        return;
+    version(Windows){
+		if(!glfw.createWindow(4, 5)){
+			return;
+		}
     }
-    */
-    if(!glfw.createWindow(3, 3)){
-        return;
-    }
-
+	else{
+		if(!glfw.createWindow(3, 3)){
+			return;
+		}
+	}
 
 	// gl
 	auto gl=new glutil.OpenGL();
@@ -89,14 +90,9 @@ void main()
 	if(!program){
 		return;
 	}
-	auto renderPass=new glutil.RenderPass();
-	renderPass.m_program=program;
-	renderPass.setClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	//auto vertices=new scene.Vertices();
-	//vertices.store(scene.createTriangle(0.5f));
 	auto vertices=scene.createTriangle(0.5f);
 	ushort[] indices=[0, 1, 2];
-	renderPass.m_mesh=renderPass.m_program.mesh2vertexArray(vertices, indices);
+	auto mesh=program.mesh2vertexArray(vertices, indices);
 
 	// gui
 	WindowContext windowContext;
@@ -108,40 +104,12 @@ void main()
     data.show_another_window=false;
     data.clear_color=[0.3f, 0.4f, 0.8f];
 
-	/+
-    // GUI renderer
-    auto scope guiRenderer=new glutil.RenderPass();
-	{
-	if(!guiRenderer.createShader!(shader.imgui))
-	{
-	return;
-	}
-	auto guiVertices=new scene.Vertices!(
-	vec2!float, "Position"
-	, vec2!float, "UV"
-	, vec4!float, "Color"
-	)(true);
-	guiRenderer.mesh2vertexArray(guiVertices);
-	}
-    //renderer.CreateDeviceObjects(gui.vertexSize, gui.uvOffset, gui.colorOffset);
-    // setup font
-    {
-	ubyte* pixels;
-	int width, height;
-	gui.getTexDataAsRGBA32(&pixels, &width, &height);
-
-	guiRenderer.m_texture=new glutil.Texture();
-	guiRenderer.m_texture.loadImageRGBA(width, height, pixels);
-	gui.setTextureID(cast(void*)guiRenderer.m_texture.m_texture);
-    }
-	+/
-
     // opengl
     auto scope renderer=new Renderer();
     renderer.CreateDeviceObjects(gui.vertexSize, gui.uvOffset, gui.colorOffset);
     // setup font
 	auto texture=new glutil.Texture();
-   
+  
 
     ubyte* pixels;
     int width, height;
@@ -156,14 +124,14 @@ void main()
 	auto rotator=new scene.Rotator();
 	while (true)
 	{	
-		// update
+		// new frame
 		auto duration=clock.newFrame();
 		auto delta=duration.total!"msecs" * 0.001;
 
+        // update WindowContext
 		if(!glfw.loop()){
 			break;
 		}
-        // update WindowContext
         glfw.updateContext(windowContext, mouseContext);
 
 		// gui
@@ -171,13 +139,17 @@ void main()
 		glfw.setMouseCursor(mouseContext.enableCursor);
 		build(data);
 
+		// scene
 		rotator.update(delta);
-		renderPass.setFrameSize(windowContext.frame_w, windowContext.frame_h);
-		renderPass.m_program.setUniform("uRotationMatrix", mat4!float.identity);
 
 		// draw
-		renderPass.clear();
-		renderPass.draw(cast(int)vertices.length, null);
+		glutil.setViewport(0, 0, windowContext.frame_w, windowContext.frame_h);
+		glutil.clear(data.clear_color[0], data.clear_color[1], data.clear_color[2], 1.0f);
+		program.use();
+		program.setUniform("uRotationMatrix", mat4!float.identity);
+		mesh.bind();
+		mesh.draw(cast(int)vertices.length, null);
+
 		gui.renderDrawLists(renderer);
 
 		// present
