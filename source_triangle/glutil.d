@@ -458,12 +458,14 @@ semantic: attributeMap[name]
 			string name=a.semantic.to!string;
 			auto index=cast(int)GetIndex!T(name);
 			if(index==-1){
-				throw new Exception("unknown semantics: "~name);
+				//throw new Exception("unknown semantics: "~name);
+				error("not found vertex attribute for "~name);
 			}
-
-			vertexArray.attribPointer(a
+			else{
+				vertexArray.attribPointer(a
 										, types[index]
 										, T.sizeof, offsets[index]);
+			}
 		}
 
 		vertexArray.unbind();

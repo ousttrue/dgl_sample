@@ -3,6 +3,7 @@ import std.typecons;
 import core.stdc.string;
 import std.traits;
 import semantics;
+import std.exception;
 
 
 struct Vertex
@@ -140,4 +141,33 @@ class Rotator
         m_angle+=delta * m_angleVelocity;
         Matrix=mat4!float.rotateZ(m_angle);
     }
+}
+
+
+class Builder(T)
+{
+	alias Vertex=T;
+
+	Vertex[] Vertices;
+	ushort[] Indices;
+
+	void pushTriangle(ushort[3] i)
+	{
+		Indices~=[i[0], i[1], i[2]];
+	}
+
+	void pushQuadrangle(ushort[4] i)
+	{
+		pushTriangle([i[0], i[1], i[2]]);
+		pushTriangle([i[2], i[3], i[0]]);
+	}
+
+	void pushQuadrangles(ushort[] quads)
+	{
+		enforce(quads.length % 4 == 0);
+		for(int i=0; i<quads.length; i+=4)
+		{
+			pushQuadrangle([quads[i], quads[i+1], quads[i+2], quads[i+3]]);
+		}
+	}
 }

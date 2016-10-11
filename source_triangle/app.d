@@ -8,6 +8,8 @@ static import scene;
 static import shader.simple;
 static import shader.circle;
 static import shader.imgui;
+import teapot;
+
 
 import std.typecons;
 
@@ -89,9 +91,14 @@ void main()
 	if(!program){
 		return;
 	}
-	auto vertices=scene.createTriangle(0.5f);
-	ushort[] indices=[0, 1, 2];
-	auto mesh=program.mesh2vertexArray(vertices, indices);
+	auto teapot=loadTeapot(0.2f);
+    auto indices=new ushort[teapot.Vertices.length];
+	foreach(i, v; teapot.Vertices)
+	{
+		indices[i]=cast(ushort)i;
+	}
+
+	auto mesh=program.mesh2vertexArray(teapot.Vertices, indices);
 
 	// gui
 	gui.WindowContext windowContext;
@@ -106,17 +113,14 @@ void main()
     // opengl
     auto scope renderer=new Renderer();
     renderer.CreateDeviceObjects(gui.vertexSize, gui.uvOffset, gui.colorOffset);
+
     // setup font
 	auto texture=new glutil.Texture();
-  
-
     ubyte* pixels;
     int width, height;
     gui.getTexDataAsRGBA32(&pixels, &width, &height);
-    //auto textureId=renderer.CreateFonts(pixels, width, height);
 	texture.loadImageRGBA(pixels, width, height);
-    gui.setTextureID(cast(void*)texture.get());
-    
+    gui.setTextureID(cast(void*)texture.get());   
 
 	// main loop
 	auto clock=new FpsClock!30;
@@ -133,27 +137,27 @@ void main()
 		}
         glfw.updateContext(windowContext, mouseContext);
 
-		// gui
+		// update gui
 		gui.newFrame(delta, windowContext, mouseContext);
-		glfw.setMouseCursor(mouseContext.enableCursor);
 		build(data);
-
-		// scene
+		// update scene
 		rotator.update(delta);
 
-		// draw
+		// clear
 		glutil.setViewport(0, 0, windowContext.frame_w, windowContext.frame_h);
 		glutil.clear(data.clear_color[0], data.clear_color[1], data.clear_color[2], 1.0f);
+		// draw triangle
 		program.use();
 		program.setUniform("uRotationMatrix", mat4!float.identity);
 		mesh.bind();
-		mesh.draw(cast(int)vertices.length, null);
-
+		mesh.draw(cast(int)teapot.Vertices.length, null);
+		// draw gui
 		gui.renderDrawLists(renderer);
 
+		// update cursor
+		glfw.setMouseCursor(mouseContext.enableCursor);
 		// present
 		glfw.flush();
-
 		// wait
 		clock.waitNextFrame();
 	}
