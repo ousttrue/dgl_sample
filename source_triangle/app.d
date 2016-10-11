@@ -4,6 +4,8 @@ import fpsclock;
 
 static import glutil;
 static import scene;
+import scenerenderer;
+
 static import shader.simple;
 static import shader.circle;
 import teapot;
@@ -11,6 +13,18 @@ import teapot;
 static import gui;
 static import guidefine;
 import guirenderer;
+
+
+void Setup(SceneRenderer sceneRenderer)
+{
+	auto teapot=loadTeapot(0.2f);
+    auto indices=new ushort[teapot.Vertices.length];
+	foreach(i, v; teapot.Vertices)
+	{
+		indices[i]=cast(ushort)i;
+	}
+    sceneRenderer.addModel(teapot.Vertices, indices);
+}
 
 
 void main()
@@ -28,50 +42,35 @@ void main()
 		}
 	}
 
-	// gl
-	auto gl=new glutil.OpenGL();
+	// reload context
+	glutil.Initialize();
 
-	// 3D renderer
-	auto program=glutil.ShaderProgram.createShader!(shader.simple)();
-	if(!program){
-		return;
-	}
-	auto teapot=loadTeapot(0.2f);
-    auto indices=new ushort[teapot.Vertices.length];
-	foreach(i, v; teapot.Vertices)
-	{
-		indices[i]=cast(ushort)i;
-	}
+    ////////////////////
+    // scene
+    ////////////////////
+    auto scope sceneRenderer=SceneRenderer.create!(shader.simple);
+    if(!sceneRenderer)
+    {
+        return;
+    }
+    sceneRenderer.Setup();
 
-	auto mesh=program.mesh2vertexArray(teapot.Vertices, indices);
-
+    ////////////////////
 	// gui
-	gui.WindowContext windowContext;
-	gui.MouseContext mouseContext;
-
-    // guiの変数
-    guidefine.GuiData data;
-    data.show_test_window=true;
-    data.show_another_window=false;
-    data.clear_color=[0.3f, 0.4f, 0.8f];
-
-    // opengl
-    auto scope renderer=GuiRenderer.Create();
-	if(!renderer){
+    ////////////////////
+    guidefine.show_test_window=true;
+    guidefine.show_another_window=false;
+    guidefine.clear_color=[0.3f, 0.4f, 0.8f];
+    auto scope guiRenderer=GuiRenderer.Create();
+	if(!guiRenderer){
 		return;
 	}
-
-    // setup font
-	auto texture=new glutil.Texture();
-    ubyte* pixels;
-    int width, height;
-    gui.getTexDataAsRGBA32(&pixels, &width, &height);
-	texture.loadImageRGBA(pixels, width, height);
-    gui.setTextureID(cast(void*)texture.get());   
 
 	// main loop
 	auto clock=new FpsClock!30;
 	auto rotator=new scene.Rotator();
+	gui.WindowContext windowContext;
+	gui.MouseContext mouseContext;
 	while (true)
 	{	
 		// new frame
@@ -86,20 +85,18 @@ void main()
 
 		// update gui
 		gui.newFrame(delta, windowContext, mouseContext);
-		guidefine.build(data);
+		guidefine.build();
 		// update scene
 		rotator.update(delta);
 
 		// clear
 		glutil.setViewport(0, 0, windowContext.frame_w, windowContext.frame_h);
-		glutil.clear(data.clear_color[0], data.clear_color[1], data.clear_color[2], 1.0f);
+		glutil.clear(guidefine.clear_color[0], guidefine.clear_color[1], guidefine.clear_color[2], 1.0f);
+
 		// draw triangle
-		program.use();
-		program.setUniform("uRotationMatrix", mat4!float.identity);
-		mesh.bind();
-		mesh.draw(cast(int)teapot.Vertices.length, null);
+        sceneRenderer.draw();
 		// draw gui
-		gui.renderDrawLists(renderer);
+		gui.renderDrawLists(guiRenderer);
 
 		// update cursor
 		glfw.setMouseCursor(mouseContext.enableCursor);

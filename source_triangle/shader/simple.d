@@ -20,13 +20,13 @@ layout(location=2) in vec2 aTexCoord0;
 out vec3 fColor;
 out vec2 fTexCoord0;
 
-uniform mat4 uRotationMatrix;
+uniform mat4 uModelMatrix;
 
 void main()
 {
 	fColor=aColor;
 	fTexCoord0=aTexCoord0;
-	gl_Position = uRotationMatrix * vec4(aPosition, 1.0);
+	gl_Position = uModelMatrix * vec4(aPosition, 1.0);
 }
 ";
 

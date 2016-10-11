@@ -21,6 +21,32 @@ static this()
 {
 	DerelictGL3.load();
 }
+string m_renderer;
+string m_vendor;
+string m_version;
+string m_shaderVersion;
+GLint m_versionMajor;
+GLint m_versionMinor;
+string[] m_extensions;
+void Initialize()
+{
+    DerelictGL3.reload();
+
+    m_renderer=glGetString(GL_RENDERER).to!string;
+    m_vendor=glGetString(GL_VENDOR).to!string;
+    m_version=glGetString(GL_VERSION).to!string;
+    m_shaderVersion=glGetString(GL_SHADING_LANGUAGE_VERSION).to!string;
+    glGetIntegerv(GL_MAJOR_VERSION, &m_versionMajor);
+    glGetIntegerv(GL_MINOR_VERSION, &m_versionMinor);
+
+    int extensions;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &extensions);
+    m_extensions.length=extensions;
+    for(int i=0; i<extensions; ++i){
+        m_extensions[i]=glGetStringi(GL_EXTENSIONS, i).to!string;
+    }
+}
+
 
 auto byteslen(T)(T[] array)
 {
@@ -114,37 +140,6 @@ long GetIndex(T)(string name)
 		alias names=Names!(T);
 		return names.countUntil(name);
 	}
-}
-
-class OpenGL
-{
-    string m_renderer;
-    string m_vendor;
-    string m_version;
-    string m_shaderVersion;
-    GLint m_versionMajor;
-    GLint m_versionMinor;
-
-    string[] m_extensions;
-
-    this()
-    {
-        DerelictGL3.reload();
-
-        m_renderer=glGetString(GL_RENDERER).to!string;
-        m_vendor=glGetString(GL_VENDOR).to!string;
-        m_version=glGetString(GL_VERSION).to!string;
-        m_shaderVersion=glGetString(GL_SHADING_LANGUAGE_VERSION).to!string;
-        glGetIntegerv(GL_MAJOR_VERSION, &m_versionMajor);
-        glGetIntegerv(GL_MINOR_VERSION, &m_versionMinor);
-
-        int extensions;
-        glGetIntegerv(GL_NUM_EXTENSIONS, &extensions);
-        m_extensions.length=extensions;
-        for(int i=0; i<extensions; ++i){
-            m_extensions[i]=glGetStringi(GL_EXTENSIONS, i).to!string;
-        }
-    }
 }
 
 
@@ -500,6 +495,15 @@ semantic: attributeMap[name]
 						   &value[0][0]);
 
     }
+
+	void setUniform(T)(ref T value)
+	{
+		alias names=FieldNameTuple!T;
+		foreach(i, name; names)
+		{
+			setUniform(name, value.tupleof[i]);
+		}
+	}
 }
 
 

@@ -35,6 +35,14 @@ public:
 			return null;
 		}
 
+        // setup font
+        auto texture=new glutil.Texture();
+        ubyte* pixels;
+        int width, height;
+        gui.getTexDataAsRGBA32(&pixels, &width, &height);
+        texture.loadImageRGBA(pixels, width, height);
+        gui.setTextureID(cast(void*)texture.get());   
+
 		return new GuiRenderer(program, mesh);
 	}
 
