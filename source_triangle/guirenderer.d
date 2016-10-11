@@ -24,8 +24,6 @@ private:
 public:
 	static GuiRenderer Create()
 	{
-		//gui.vertexSize, gui.uvOffset, gui.colorOffset);
-
         auto program=ShaderProgram.createShader!(shader.imgui);
 		if(!program){
 			return null;
