@@ -1,6 +1,6 @@
 import glfw;
 import gfm.math;
-import renderer;
+import guirenderer;
 import fpsclock;
 static import gui;
 static import glutil;
@@ -111,8 +111,10 @@ void main()
     data.clear_color=[0.3f, 0.4f, 0.8f];
 
     // opengl
-    auto scope renderer=new Renderer();
-    renderer.CreateDeviceObjects(gui.vertexSize, gui.uvOffset, gui.colorOffset);
+    auto scope renderer=GuiRenderer.Create();
+	if(!renderer){
+		return;
+	}
 
     // setup font
 	auto texture=new glutil.Texture();

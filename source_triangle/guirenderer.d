@@ -7,25 +7,39 @@ static import scene;
 static import gui;
 
 
-class Renderer: gui.IRenderer
+class GuiRenderer: gui.IRenderer
 {
+private:
 	ShaderProgram m_program;
 	VertexArray m_mesh;
-	bool CreateDeviceObjects(uint vertexSize, uint uvOffset, uint colorOffset)
+	GLint last_program;
+	GLint last_texture;
+
+	this(ShaderProgram program, VertexArray mesh)
 	{
-        m_program=ShaderProgram.createShader!(shader.imgui);
-		if(!m_program){
-			return false;
+		m_program=program;
+		m_mesh=mesh;
+	}
+
+public:
+	static GuiRenderer Create()
+	{
+		//gui.vertexSize, gui.uvOffset, gui.colorOffset);
+
+        auto program=ShaderProgram.createShader!(shader.imgui);
+		if(!program){
+			return null;
 		}
 
 		import derelict.imgui.imgui: ImDrawVert;
-		m_mesh=m_program.mesh2vertexArray!ImDrawVert([]);
+		auto mesh=program.mesh2vertexArray!ImDrawVert([]);
+		if(!mesh){
+			return null;
+		}
 
-		return true;
+		return new GuiRenderer(program, mesh);
 	}
 
-	GLint last_program;
-	GLint last_texture;
 	nothrow void begin(float width, float height)
 	{
 		// Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled
