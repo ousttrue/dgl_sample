@@ -4,11 +4,12 @@ import fpsclock;
 
 static import glutil;
 static import scene;
+static import sceneloader;
 import scenerenderer;
 
 static import shader.simple;
 static import shader.circle;
-import teapot;
+
 
 static import gui;
 static import guidefine;
@@ -37,7 +38,7 @@ class Rotator
 
 void Setup(SceneRenderer sceneRenderer)
 {
-	auto teapot=loadTeapot(0.2f);
+	auto teapot=sceneloader.loadObj("../wt_teapot.obj", 0.2f);
     auto indices=new ushort[teapot.Vertices.length];
 	foreach(i, v; teapot.Vertices)
 	{
