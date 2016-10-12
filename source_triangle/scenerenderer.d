@@ -2,12 +2,19 @@ import glutil;
 import gfm.math;
 import std.signals;
 import core.time;
+import guidefine;
 
 
 struct UniformVariables
 {
 	mat4!float uModelMatrix = mat4!float.identity;
 }
+
+
+struct SceneData
+{
+	RGB BackgroundColor = RGB(0.5f, 0.3f, 0.2f);
+};
 
 
 class Model
@@ -35,16 +42,18 @@ class Model
 
 class SceneRenderer
 {
+private:
     ShaderProgram m_program;
     Model[] m_models;
 
- private:
     this(ShaderProgram program)
     {
         m_program=program;
     }
 
  public:
+	SceneData Settings;
+
     static SceneRenderer create(alias Module)()
     {
         // 3D renderer
@@ -77,6 +86,8 @@ class SceneRenderer
 
     void draw()
     {
+		glutil.clear3v(&Settings.BackgroundColor.R);
+
         m_program.use();
 		foreach(m; m_models)
 		{

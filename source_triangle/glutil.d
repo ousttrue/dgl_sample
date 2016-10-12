@@ -695,9 +695,15 @@ class Texture
 }
 
 
-void clear(float r, float g, float b, float a)
+void clear4(float r, float g, float b, float a)
 {
 	glClearColor(r, g, b, a);
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void clear3v(float *v)
+{
+	glClearColor(v[0], v[1], v[2], 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 

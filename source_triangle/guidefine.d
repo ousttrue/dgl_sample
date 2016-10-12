@@ -1,11 +1,45 @@
 import std.typecons;
-static import shader.imgui;
+import std.traits;
+import derelict.imgui.imgui;
+
+
+
+struct RGB
+{
+	float R=0;
+	float G=0;
+	float B=0;
+};
 
 
 // inspector...
 bool show_test_window;
 bool show_another_window;
 float[3] clear_color;
+
+
+void build(string name, ref RGB value)
+{
+	float[3] vec;
+	vec[0]=value.R;
+	vec[1]=value.G;
+	vec[2]=value.B;
+	igColorEditMode(ImGuiColorEditMode_RGB);
+	igColorEdit3(name.ptr, vec);
+	value.R=vec[0];
+	value.G=vec[1];
+	value.B=vec[2];
+}
+
+
+void build(T)(ref T t)
+{
+	alias names=FieldNameTuple!T;
+	foreach(i, name; names)
+	{
+		build(name, t.tupleof[i]);
+	}
+}
 
 
 void build()
@@ -19,8 +53,12 @@ void build()
         igText("Hello, world!");
         igSliderFloat("float", &f, 0.0f, 1.0f);
         igColorEdit3("clear color", clear_color);
-        if (igButton("Test Window")) show_test_window ^= 1;
-        if (igButton("Another Window")) show_another_window ^= 1;
+        if (igButton("Test Window")){
+			show_test_window ^= 1;
+		}
+        if (igButton("Another Window")){
+			show_another_window ^= 1;
+		}
         igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / igGetIO().Framerate, igGetIO().Framerate);
     }
 

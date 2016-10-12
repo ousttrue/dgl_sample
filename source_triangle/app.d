@@ -95,6 +95,7 @@ void main()
 		return;
 	}
 
+
     ////////////////////
 	// main loop
     ////////////////////
@@ -114,13 +115,12 @@ void main()
 
 		// update gui
 		gui.newFrame(delta, windowContext, mouseContext);
-		guidefine.build();
+		guidefine.build(sceneRenderer.Settings);
 		// update scene
 		sceneRenderer.update(delta);
 
 		// clear
 		glutil.setViewport(0, 0, windowContext.frame_w, windowContext.frame_h);
-		glutil.clear(guidefine.clear_color[0], guidefine.clear_color[1], guidefine.clear_color[2], 1.0f);
 
 		// draw triangle
         sceneRenderer.draw();
