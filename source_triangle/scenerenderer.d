@@ -1,5 +1,7 @@
 import glutil;
 import gfm.math;
+import std.signals;
+import core.time;
 
 
 struct UniformVariables
@@ -10,21 +12,23 @@ struct UniformVariables
 
 class Model
 {
-	VertexArray Model;
+	VertexArray Mesh;
 	UniformVariables Uniform;
 	int IndexLength;
 
-	this(VertexArray model, int indexLength)
+	mixin Signal!(Model, Duration);
+
+	this(VertexArray mesh, int indexLength)
 	{
-		Model=model;
+		Mesh=mesh;
 		IndexLength=indexLength;
 	}
 
 	void draw(ShaderProgram program)
 	{
 		program.setUniform(Uniform);
-        Model.bind();
-        Model.draw(IndexLength, null);
+        Mesh.bind();
+        Mesh.draw(IndexLength, null);
 	}
 }
 
@@ -52,15 +56,24 @@ class SceneRenderer
         return new SceneRenderer(program);
     }
 
-    VertexArray addModel(Vertex)(Vertex[] vertices, ushort[] indices)
+    Model addModel(Vertex)(Vertex[] vertices, ushort[] indices)
     {
         auto mesh=m_program.mesh2vertexArray(vertices, indices);
         if(!mesh){
             return null;
         }
-        m_models~=new Model(mesh, indices.length);
-        return mesh;
+		auto model=new Model(mesh, indices.length);
+        m_models~=model;
+        return model;
     }
+
+	void update(Duration delta)
+	{
+		foreach(m; m_models)
+		{
+			m.emit(m, delta);
+		}
+	}
 
     void draw()
     {
@@ -71,4 +84,3 @@ class SceneRenderer
 		}
     }
 }
-

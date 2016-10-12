@@ -129,21 +129,6 @@ static Vertex[] createQuadrangle(float size)
 }
 
 
-class Rotator
-{
-    mat4!float Matrix=mat4!float.identity;
-
-    float m_angle=0;
-    float m_angleVelocity=radians!float(180);
-
-    void update(float delta)
-    {
-        m_angle+=delta * m_angleVelocity;
-        Matrix=mat4!float.rotateZ(m_angle);
-    }
-}
-
-
 class Builder(T)
 {
 	alias Vertex=T;

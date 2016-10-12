@@ -1,5 +1,6 @@
 ﻿import derelict.imgui.imgui;
 import derelict.util.exception;
+import core.time;
 
 
 struct WindowContext
@@ -79,7 +80,7 @@ void setTextureID(void *id)
     ImFontAtlas_SetTexID(io.Fonts, id);
 }
 
-void newFrame(double delta
+void newFrame(Duration duration
 			  , ref WindowContext w
 			  , ref MouseContext m
 			  )
@@ -88,7 +89,7 @@ void newFrame(double delta
     io.DisplaySize = ImVec2(w.frame_w, w.frame_h);
 
     // Setup time step
-    io.DeltaTime = delta;
+    io.DeltaTime = duration.total!"msecs" * 0.001;
 
     // Setup inputs
     // (we already got mouse wheel, 

@@ -15,6 +15,26 @@ static import guidefine;
 import guirenderer;
 
 
+class Rotator
+{
+	import core.time;
+
+    float m_angle=0;
+    float m_angleVelocity=radians!float(180);
+
+    mat4!float update(Duration delta)
+    {
+        m_angle+=delta.total!"msecs" * 0.001f * m_angleVelocity;
+        return mat4!float.rotateZ(m_angle);
+    }
+
+	void update(Model m, Duration d)
+	{
+		m.Uniform.uModelMatrix=update(d);	
+	}
+}
+
+
 void Setup(SceneRenderer sceneRenderer)
 {
 	auto teapot=loadTeapot(0.2f);
@@ -23,13 +43,23 @@ void Setup(SceneRenderer sceneRenderer)
 	{
 		indices[i]=cast(ushort)i;
 	}
-    sceneRenderer.addModel(teapot.Vertices, indices);
+    auto model=sceneRenderer.addModel(teapot.Vertices, indices);
+
+	auto r=new Rotator();
+	/*
+	model.connect((m, d){
+		m.Uniform.uModelMatrix=r.update(d);	
+	});
+	*/
+	model.connect(&r.update);
 }
 
 
 void main()
 {
+    ////////////////////
     // window
+    ////////////////////
     auto glfw=new GLFW();
     version(Windows){
 		if(!glfw.createWindow(4, 5)){
@@ -41,7 +71,6 @@ void main()
 			return;
 		}
 	}
-
 	// reload context
 	glutil.Initialize();
 
@@ -66,16 +95,16 @@ void main()
 		return;
 	}
 
+    ////////////////////
 	// main loop
+    ////////////////////
 	auto clock=new FpsClock!30;
-	auto rotator=new scene.Rotator();
 	gui.WindowContext windowContext;
 	gui.MouseContext mouseContext;
 	while (true)
 	{	
 		// new frame
-		auto duration=clock.newFrame();
-		auto delta=duration.total!"msecs" * 0.001;
+		auto delta=clock.newFrame();
 
         // update WindowContext
 		if(!glfw.loop()){
@@ -87,7 +116,7 @@ void main()
 		gui.newFrame(delta, windowContext, mouseContext);
 		guidefine.build();
 		// update scene
-		rotator.update(delta);
+		sceneRenderer.update(delta);
 
 		// clear
 		glutil.setViewport(0, 0, windowContext.frame_w, windowContext.frame_h);
@@ -106,4 +135,3 @@ void main()
 		clock.waitNextFrame();
 	}
 }
-
